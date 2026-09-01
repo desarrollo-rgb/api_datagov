@@ -24,12 +24,84 @@ BigQuery de verdad (ver [Configuración](#4-configuración-el-archivo-env)).
 
 ## 1. Requisitos (se instalan una sola vez en tu máquina)
 
-| Herramienta | Para qué sirve | Cómo instalar | Comprobar |
-| --- | --- | --- | --- |
-| **pyenv** | Instalar y fijar la versión de Python | [pyenv-win](https://github.com/pyenv-win/pyenv-win#installation) (Windows) · [pyenv](https://github.com/pyenv/pyenv#installation) (Mac/Linux) | `pyenv --version` |
-| **Poetry** | Gestionar dependencias y el entorno virtual | [Guía oficial](https://python-poetry.org/docs/#installation) | `poetry --version` |
+Necesitas dos herramientas antes de tocar el proyecto:
 
-> No necesitas instalar Python a mano: lo hará pyenv en el paso 2.
+| Herramienta | Para qué sirve |
+| --- | --- |
+| **pyenv** | Instala y fija la versión de Python que usa el proyecto |
+| **Poetry** | Gestiona las dependencias y el entorno virtual |
+
+> Las instrucciones de abajo son para **Windows** (PowerShell), que es el entorno del
+> equipo; al final hay una nota para Mac/Linux. **Tras instalar cada herramienta, cierra
+> y vuelve a abrir la terminal** para que el PATH se actualice.
+
+### 1.1 Instalar pyenv (pyenv-win)
+
+1. Abre **PowerShell** y ejecuta el instalador oficial:
+
+   ```powershell
+   Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+   ```
+
+2. Cierra y vuelve a abrir PowerShell.
+3. Comprueba que quedó instalado:
+
+   ```powershell
+   pyenv --version
+   ```
+
+   > Si dice que `pyenv` no se reconoce, reinicia el equipo (a veces el PATH solo toma
+   > efecto tras reiniciar) o revisa la [guía de pyenv-win](https://github.com/pyenv-win/pyenv-win#installation).
+
+### 1.2 Instalar Python con pyenv
+
+pyenv no trae Python: lo instala. Instala la versión del proyecto y déjala como global
+para que el comando `python` funcione en tu terminal:
+
+```powershell
+pyenv install 3.11.9
+```
+
+```powershell
+pyenv global 3.11.9
+```
+
+```powershell
+python --version
+```
+
+Debe imprimir `Python 3.11.9`.
+
+### 1.3 Instalar Poetry
+
+1. Con Python ya disponible, instala Poetry con su instalador oficial:
+
+   ```powershell
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+   ```
+
+2. Al terminar, el instalador te muestra **la ruta que debes agregar al PATH**. En Windows
+   suele ser:
+
+   ```
+   %APPDATA%\Python\Scripts
+   ```
+
+   Agrégala en *Configuración → Editar las variables de entorno del sistema → Path* y
+   vuelve a abrir la terminal.
+3. Comprueba:
+
+   ```powershell
+   poetry --version
+   ```
+
+> **Tip (opcional):** para que Poetry cree el entorno virtual dentro de cada proyecto en
+> general, ejecuta `poetry config virtualenvs.in-project true`. Este repo ya lo trae
+> configurado localmente (archivo `poetry.toml`), así que para *este* proyecto no hace falta.
+
+> **Mac / Linux:** instala pyenv con su [guía oficial](https://github.com/pyenv/pyenv#installation)
+> (o `brew install pyenv`) y Poetry con
+> `curl -sSL https://install.python-poetry.org | python3 -`. Los demás pasos son iguales.
 
 ---
 
