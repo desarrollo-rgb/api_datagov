@@ -1,264 +1,43 @@
 # API DataGov
 
-Esqueleto de una API en **FastAPI**, con **pyenv** para fijar la versión de Python y
-**Poetry** para gestionar dependencias. Por ahora solo expone un endpoint de prueba
-en `GET /`.
+API en **FastAPI** que actúa como **capa de integración del proyecto DataGov** frente a
+ValleData. Su primera responsabilidad es **exponer datos de BigQuery** (por ahora, una
+tabla `agricultura`) a través de un endpoint protegido con token.
 
-Este README documenta **cómo se construyó la plantilla desde cero**, para poder
-replicarla en otro proyecto.
-
----
-
-## Requisitos previos
-
-Se instalan una sola vez en la máquina, no por proyecto.
-
-| Herramienta | Para qué sirve | Comprobar |
-| --- | --- | --- |
-| [pyenv-win](https://github.com/pyenv-win/pyenv-win) | Instalar y cambiar entre versiones de Python | `pyenv --version` |
-| [Poetry](https://python-poetry.org/docs/#installation) | Gestionar dependencias y el entorno virtual | `poetry --version` |
-
-Versiones usadas aquí: pyenv 3.1.1, Poetry 2.2.1.
+> Para entender **por qué** existe este servicio y cómo encaja en el ecosistema, lee los
+> documentos de la carpeta [`documentacion/`](documentacion). Este README es para
+> **instalar, correr y contribuir**; la parte conceptual está allí.
 
 ---
 
-## Paso a paso
-
-### 1. Crear la carpeta e inicializar git
-
-```bash
-mkdir api_datagov
-```
-
-```bash
-cd api_datagov
-```
-
-```bash
-git init
-```
-
-### 2. Fijar la versión de Python con pyenv
-
-Primero mira qué versiones tienes instaladas:
-
-```bash
-pyenv versions
-```
-
-Si no tienes la que quieres, instálala:
-
-```bash
-pyenv install 3.11.9
-```
-
-Y fíjala **para este proyecto**:
-
-```bash
-pyenv local 3.11.9
-```
-
-Esto crea un archivo `.python-version` con el valor `3.11.9`. Desde ahora, cualquier
-comando `python` ejecutado dentro de esta carpeta usará esa versión. El archivo **sí se
-versiona en git**: es lo que garantiza que todo el equipo use el mismo Python.
-
-Comprueba:
-
-```bash
-python --version
-```
-
-### 3. Configurar Poetry para crear el entorno dentro del proyecto
-
-Por defecto Poetry guarda los entornos virtuales en una carpeta global del sistema.
-Es más cómodo tenerlo dentro del proyecto, en `.venv/`:
-
-```bash
-poetry config virtualenvs.in-project true --local
-```
-
-El `--local` hace que la configuración aplique **solo a este proyecto**, y la guarda en
-un archivo `poetry.toml`. Sin `--local` cambiarías la configuración global de tu máquina.
-
-### 4. Crear el `pyproject.toml`
-
-Este archivo es el centro del proyecto: describe el paquete y sus dependencias.
-Puedes generarlo de forma interactiva con `poetry init`, o crearlo a mano:
-
-```toml
-[project]
-name = "api-datagov"
-version = "0.1.0"
-description = "Capa de integracion entre DataGov y ValleData"
-requires-python = ">=3.11,<4.0"
-dependencies = [
-    "fastapi (>=0.141,<1.0)",
-    "uvicorn[standard] (>=0.52,<1.0)",
-]
-
-[tool.poetry]
-# Es una aplicacion, no una libreria: no se instala a si misma como paquete.
-package-mode = false
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^9.1"
-httpx = "^0.28"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
-```
-
-Tres detalles que conviene entender:
-
-- **`package-mode = false`** — Esto es una aplicación que se ejecuta, no una librería que
-  otros instalan con `pip install`. Con esta línea, Poetry gestiona las dependencias pero
-  no intenta empaquetar e instalar tu propio código.
-- **`pythonpath = ["."]`** — Consecuencia de lo anterior: como el proyecto no se instala,
-  pytest no encontraría el módulo `app`. Esta línea añade la raíz del proyecto al
-  `sys.path` de las pruebas. Sin ella obtienes `ModuleNotFoundError: No module named 'app'`.
-- **Grupo `dev`** — `pytest` y `httpx` solo hacen falta para desarrollar y probar. Al
-  separarlos, un despliegue en producción puede instalar solo lo necesario con
-  `poetry install --without dev`.
-
-### 5. Decirle a Poetry qué Python usar
-
-```bash
-poetry env use $(pyenv which python)
-```
-
-En Windows, si el comando anterior no resuelve, pasa la ruta completa que devuelve
-`pyenv which python`:
-
-```bash
-poetry env use C:\Users\TU_USUARIO\.pyenv\pyenv-win\versions\3.11.9\python.exe
-```
-
-Este paso es importante: sin él, Poetry usaría el Python que encuentre primero en el
-`PATH`, que puede no ser el que fijaste con pyenv.
-
-### 6. Instalar las dependencias
-
-```bash
-poetry install
-```
-
-Esto crea `.venv/`, instala todo y genera **`poetry.lock`**, un archivo que registra la
-versión exacta de cada paquete y de cada dependencia de esas dependencias.
-`poetry.lock` **se versiona en git**: es lo que hace que la instalación sea idéntica en
-tu máquina, en la de tu compañero y en el servidor.
-
-> Para añadir una librería más adelante: `poetry add nombre-libreria`
-> Si es solo para desarrollo: `poetry add --group dev nombre-libreria`
-
-### 7. Escribir la aplicación
-
-Crea la carpeta `app/` con dos archivos.
-
-`app/__init__.py` va **vacío**: su sola presencia marca la carpeta como paquete de
-Python, y es lo que permite escribir `from app.main import app`.
-
-`app/main.py`:
-
-```python
-"""Punto de entrada de la API DataGov."""
-
-from fastapi import FastAPI
-
-app = FastAPI(
-    title="API DataGov",
-    version="0.1.0",
-)
-
-
-@app.get("/")
-async def hola_mundo() -> dict[str, str]:
-    return {"mensaje": "Hola mundo"}
-```
-
-### 8. Escribir la prueba
-
-`tests/test_main.py`:
-
-```python
-from fastapi.testclient import TestClient
-
-from app.main import app
-
-cliente = TestClient(app)
-
-
-def test_hola_mundo():
-    respuesta = cliente.get("/")
-    assert respuesta.status_code == 200
-    assert respuesta.json() == {"mensaje": "Hola mundo"}
-```
-
-`TestClient` levanta la aplicación en memoria y le hace peticiones reales, sin necesidad
-de arrancar un servidor. Viene de Starlette y necesita `httpx` instalado, por eso está en
-las dependencias de desarrollo.
-
-### 9. Crear el `.gitignore`
-
-Lo mínimo imprescindible:
-
-```
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.env
-```
-
-La regla clave es que **`.venv/` nunca se sube**: se reconstruye con `poetry install`.
-Lo que sí se sube es `pyproject.toml` y `poetry.lock`.
-
-### 10. Verificar que todo funciona
-
-```bash
-poetry run pytest
-```
-
-```bash
-poetry run uvicorn app.main:app --reload --port 8000
-```
-
-- Endpoint: http://localhost:8000/
-- Documentación interactiva: http://localhost:8000/docs
-
-`--reload` reinicia el servidor cada vez que guardas un archivo. Es para desarrollo; en
-producción no se usa.
-
-### 11. Primer commit
-
-```bash
-git add -A
-```
-
-```bash
-git commit -m "chore: plantilla base de la API DataGov"
-```
+## ¿Qué hace hoy?
+
+- `GET /` → un "hola mundo" público (sin token).
+- `GET /api/v1/datasets/agricultura` → devuelve filas de agricultura. **Protegido por token.**
+
+Actualmente corre en **modo de datos falsos**: responde con datos de ejemplo y **no toca
+BigQuery**. Esto permite desarrollar sin credenciales reales. Cuando existan la service
+account y la tabla reales, se cambia **una variable de entorno** y empieza a consultar
+BigQuery de verdad (ver [Configuración](#4-configuración-el-archivo-env)).
 
 ---
 
-## Resumen: qué archivo hace qué
+## 1. Requisitos (se instalan una sola vez en tu máquina)
 
-| Archivo | Se versiona | Para qué sirve |
-| --- | --- | --- |
-| `.python-version` | Sí | Fija la versión de Python (pyenv) |
-| `pyproject.toml` | Sí | Declara dependencias y configuración de herramientas |
-| `poetry.lock` | Sí | Versiones exactas instaladas: instalación reproducible |
-| `poetry.toml` | Sí | Config local de Poetry (entorno dentro del proyecto) |
-| `.gitignore` | Sí | Qué no debe subirse |
-| `app/main.py` | Sí | La aplicación |
-| `tests/` | Sí | Las pruebas |
-| `.venv/` | **No** | Entorno virtual, se reconstruye con `poetry install` |
+| Herramienta | Para qué sirve | Cómo instalar | Comprobar |
+| --- | --- | --- | --- |
+| **pyenv** | Instalar y fijar la versión de Python | [pyenv-win](https://github.com/pyenv-win/pyenv-win#installation) (Windows) · [pyenv](https://github.com/pyenv/pyenv#installation) (Mac/Linux) | `pyenv --version` |
+| **Poetry** | Gestionar dependencias y el entorno virtual | [Guía oficial](https://python-poetry.org/docs/#installation) | `poetry --version` |
+
+> No necesitas instalar Python a mano: lo hará pyenv en el paso 2.
 
 ---
 
-## Cómo lo levanta alguien que clona el repo
+## 2. Puesta en marcha (clonar y correr)
 
-Todo el paso a paso anterior se reduce a esto para quien llega después:
+Sigue estos pasos en orden. En total son ~5 minutos.
+
+**1. Clona el repositorio y entra en la carpeta:**
 
 ```bash
 git clone https://github.com/desarrollo-rgb/api_datagov.git
@@ -268,39 +47,179 @@ git clone https://github.com/desarrollo-rgb/api_datagov.git
 cd api_datagov
 ```
 
+**2. Instala la versión de Python que el proyecto exige.**
+El archivo `.python-version` ya fija `3.11.9`, así que solo tienes que instalarla:
+
 ```bash
 pyenv install 3.11.9
 ```
+
+**3. Crea tu archivo de configuración local** a partir de la plantilla:
+
+```bash
+cp .env.example .env
+```
+
+> El `.env` es tuyo y **no se sube a git**. Para desarrollar tal cual, no necesitas
+> cambiar nada: viene listo en modo de datos falsos.
+
+**4. Instala las dependencias** (Poetry creará el entorno `.venv/` dentro del proyecto):
 
 ```bash
 poetry install
 ```
 
+**5. Verifica que todo funciona corriendo las pruebas:**
+
+```bash
+poetry run pytest
+```
+
+Si ves algo como `6 passed`, ¡todo quedó bien!
+
+**6. Levanta el servidor:**
+
 ```bash
 poetry run uvicorn app.main:app --reload --port 8000
 ```
 
+- Endpoint de prueba: http://localhost:8000/
+- **Documentación interactiva:** http://localhost:8000/docs
+
+`--reload` reinicia el servidor cada vez que guardas un archivo. Es solo para desarrollo.
+
 ---
 
-## Estructura final
+## 3. Cómo está organizado el proyecto
 
 ```
 api_datagov/
 ├── app/
-│   ├── __init__.py
-│   └── main.py          # aplicacion FastAPI
-├── tests/
-│   └── test_main.py
-├── .python-version      # 3.11.9
-├── pyproject.toml       # dependencias y configuracion
-├── poetry.lock          # versiones exactas
-├── poetry.toml          # config local de Poetry
+│   ├── main.py                 # arranque de FastAPI; conecta los routers
+│   ├── config.py               # lee el .env → objeto de configuración (Settings)
+│   ├── security.py             # autenticación por token (el "guardián")
+│   ├── api/
+│   │   └── datasets.py         # endpoints que exponen datos (GET /agricultura)
+│   └── services/
+│       └── agricultura_repo.py # de dónde salen los datos: falso ↔ BigQuery
+├── tests/                      # pruebas automatizadas
+├── documentacion/              # contexto y arquitectura del proyecto
+├── .env.example                # plantilla de configuración (SÍ se versiona)
+├── .env                        # tu configuración local (NO se versiona)
+├── .python-version             # versión de Python fijada (3.11.9)
+├── pyproject.toml              # dependencias y configuración de herramientas
+├── poetry.lock                 # versiones exactas: instalación reproducible
 └── .gitignore
 ```
 
+**La idea clave del diseño:** los endpoints (`api/`) no saben de dónde vienen los datos.
+Eso lo decide `services/agricultura_repo.py` según la configuración. Así, pasar de datos
+inventados a BigQuery real **no cambia ni una línea de la lógica**, solo la configuración.
+
 ---
 
-## Comandos del día a día
+## 4. Configuración: el archivo `.env`
+
+Toda la configuración vive en variables de entorno (buena práctica: nada de valores fijos
+ni secretos en el código). Estas son las variables:
+
+| Variable | Qué es | Valor en desarrollo |
+| --- | --- | --- |
+| `API_TOKEN` | Token secreto que exige la API. **Obligatorio** (si falta, la app no arranca). | Un valor de prueba cualquiera |
+| `USAR_DATOS_FALSOS` | `true` = datos de ejemplo, sin BigQuery. `false` = consulta BigQuery real. | `true` |
+| `GCP_PROJECT_ID` | Proyecto de Google Cloud | `proyecto-dummy` |
+| `BIGQUERY_DATASET` | Dataset donde vive la tabla | `agricultura_dataset` |
+| `BIGQUERY_TABLA_AGRICULTURA` | Nombre de la tabla | `agricultura` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (solo local) | `./agricultura-sa.json` |
+
+### Pasar a datos reales (cuando existan las credenciales y la tabla)
+
+1. Consigue la llave de la service account (un `.json`) y colócala en la raíz del proyecto.
+   > Nómbrala terminada en `-sa.json` (p. ej. `datagov-sa.json`): el `.gitignore` ya
+   > ignora ese patrón, así que **no se subirá por error**.
+2. En tu `.env`, ajusta:
+   ```bash
+   USAR_DATOS_FALSOS=false
+   GCP_PROJECT_ID=tu-proyecto-real
+   BIGQUERY_DATASET=el_dataset_real
+   BIGQUERY_TABLA_AGRICULTURA=agricultura
+   GOOGLE_APPLICATION_CREDENTIALS=./datagov-sa.json
+   ```
+3. Reinicia el servidor. No hay que tocar código.
+
+> En producción (Cloud Run / GKE) `GOOGLE_APPLICATION_CREDENTIALS` se deja vacío: la
+> identidad la aporta la service account "pegada" al servicio, sin archivos de llave.
+
+---
+
+## 5. Autenticación: cómo llamar a la API
+
+Los endpoints de datos exigen un **token** en la cabecera `Authorization: Bearer <token>`.
+
+Sin token → **401**:
+
+```bash
+curl -i "http://localhost:8000/api/v1/datasets/agricultura"
+```
+
+Con el token (el que tengas en tu `.env`, campo `API_TOKEN`) → **200 + datos**:
+
+```bash
+curl -i -H "Authorization: Bearer TU_TOKEN" "http://localhost:8000/api/v1/datasets/agricultura?limite=3"
+```
+
+Desde el navegador es más cómodo: entra a http://localhost:8000/docs, pulsa **Authorize**
+🔒 (arriba a la derecha), pega el token una vez y ya puedes probar los endpoints.
+
+---
+
+## 6. Cómo contribuir / hacer cambios
+
+**Flujo de trabajo recomendado:**
+
+1. Crea una rama para tu cambio:
+   ```bash
+   git checkout -b feature/lo-que-vas-a-hacer
+   ```
+2. Haz tus cambios y **corre las pruebas** antes de subir:
+   ```bash
+   poetry run pytest
+   ```
+3. Haz commit y sube la rama; abre un Pull Request para revisión.
+
+**Añadir una librería:**
+
+```bash
+poetry add nombre-libreria           # dependencia normal
+poetry add --group dev nombre        # solo para desarrollo/pruebas
+```
+
+Esto actualiza `pyproject.toml` y `poetry.lock`. **Ambos se versionan**: así todos
+instalan exactamente lo mismo.
+
+**Convenciones del proyecto:**
+
+- Código y comentarios **en español**, para acompañar el aprendizaje del equipo.
+- **Nunca** subas secretos (tokens, llaves `.json`). Van en el `.env` o como llaves
+  ignoradas por git. Si algo es secreto y debe conocerse, documéntalo en `.env.example`
+  con un valor de ejemplo, no el real.
+- Al consultar BigQuery: **nombres de tablas/columnas desde la configuración**, y los
+  valores que llegan en la petición **siempre como parámetros** (nunca pegados al SQL).
+  Es lo que evita la inyección SQL.
+- Toda funcionalidad nueva debería venir con su prueba en `tests/`.
+
+**Qué NO se sube al repo** (ya cubierto por `.gitignore`):
+
+| No se sube | Por qué |
+| --- | --- |
+| `.env` | Contiene tu configuración local y secretos |
+| `*-sa.json`, `key.json`, `credentials*.json` | Llaves de service accounts |
+| `.venv/` | Se reconstruye con `poetry install` |
+| `__pycache__/`, `.pytest_cache/` | Archivos temporales de Python |
+
+---
+
+## 7. Comandos del día a día
 
 | Qué quieres hacer | Comando |
 | --- | --- |
@@ -314,10 +233,10 @@ api_datagov/
 
 ---
 
-## Documentos de referencia del proyecto
+## Documentos de referencia
 
-Están en la carpeta [`apis-externas/`](apis-externas):
+En la carpeta [`documentacion/`](documentacion):
 
-- [`CONTEXTO-API-DATAGOV.md`](apis-externas/CONTEXTO-API-DATAGOV.md) — qué es este servicio y por qué existe.
-- [`IMPLEMENTACION-API-DATAGOV.md`](apis-externas/IMPLEMENTACION-API-DATAGOV.md) — el plan de construcción por fases.
-- [`CONTEXTO-API-VALLEDATA.md`](apis-externas/CONTEXTO-API-VALLEDATA.md) y [`IMPLEMENTACION-API-VALLEDATA.md`](apis-externas/IMPLEMENTACION-API-VALLEDATA.md) — el otro lado de la integración.
+- [`CONTEXTO-API-DATAGOV.md`](documentacion/CONTEXTO-API-DATAGOV.md) — qué es este servicio y por qué existe.
+- [`IMPLEMENTACION-API-DATAGOV.md`](documentacion/IMPLEMENTACION-API-DATAGOV.md) — notas de construcción por fases.
+- [`CONTEXTO-API-VALLEDATA.md`](documentacion/CONTEXTO-API-VALLEDATA.md) y [`IMPLEMENTACION-API-VALLEDATA.md`](documentacion/IMPLEMENTACION-API-VALLEDATA.md) — el otro lado de la integración.

@@ -17,8 +17,22 @@ htmlcov/
 .env
 .env.*
 !.env.example
+
+# Llaves de service accounts de GCP: NUNCA se suben.
+# Cubrimos varios nombres posibles para no depender de recordar la regla.
 *-sa.json
+*_sa.json
+sa-*.json
+*-key.json
+key.json
 credentials*.json
+service-account*.json
+
+# Logs
+*.log
+
+# Documentacion interna (no se versiona)
+documentacion/
 
 # Editores / SO
 .vscode/
