@@ -13,6 +13,7 @@ tabla `agricultura`) a través de un endpoint protegido con token.
 ## ¿Qué hace hoy?
 
 - `GET /` → un "hola mundo" público (sin token).
+- `GET /health` y `GET /ready` → estado del servicio para la infraestructura. Públicos.
 - `GET /api/v1/datasets/agricultura` → devuelve filas de agricultura. **Protegido por token.**
 
 Actualmente corre en **modo de datos falsos**: responde con datos de ejemplo y **no toca
