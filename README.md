@@ -14,7 +14,8 @@ tabla `agricultura`) a través de un endpoint protegido con token.
 
 - `GET /` → un "hola mundo" público (sin token).
 - `GET /health` y `GET /ready` → estado del servicio para la infraestructura. Públicos.
-- `GET /api/v1/datasets/agricultura` → devuelve filas de agricultura. **Protegido por token.**
+- `GET /api/v1/datasets/agricultura` → devuelve filas de agricultura (Flujo 1). **Protegido por token.**
+- `GET /api/v1/comentarios` → comentarios que DataGov obtiene de ValleData, para que un DAG los consuma (Flujo 2). **Protegido por token.**
 
 Actualmente corre en **modo de datos falsos**: responde con datos de ejemplo y **no toca
 BigQuery**. Esto permite desarrollar sin credenciales reales. Cuando existan la service

@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     # En Cloud Run / GKE se deja vacia: la identidad la aporta la SA del servicio.
     google_application_credentials: str | None = None
 
+    # --- Cliente hacia la API ValleData (Flujo 2: ingesta de comentarios) ---
+    # True  -> comentarios de ejemplo, sin llamar a ValleData (para desarrollar).
+    # False -> llama a la API ValleData real.
+    usar_valledata_falso: bool = True
+    valledata_api_base_url: str = "https://valledata.example"
+    valledata_api_token: str = "token-dummy-valledata-no-usar-en-produccion"
+    valledata_timeout_segundos: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

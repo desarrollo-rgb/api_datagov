@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn[standard] (>=0.52,<1.0)",
     "pydantic-settings (>=2.15.0,<3.0.0)",
     "google-cloud-bigquery (>=3.44.0,<4.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
 ]
 
 [tool.poetry]
@@ -16,7 +17,6 @@ package-mode = false
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.1"
-httpx = "^0.28"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
