@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # True  -> comentarios de ejemplo, sin llamar a ValleData (para desarrollar).
     # False -> llama a la API ValleData real.
     usar_valledata_falso: bool = True
-    valledata_api_base_url: str = "https://valledata.example"
+    valledata_api_base_url: str = "http://localhost:8001"
     valledata_api_token: str = "token-dummy-valledata-no-usar-en-produccion"
     valledata_timeout_segundos: int = 30
 

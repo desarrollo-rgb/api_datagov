@@ -15,8 +15,16 @@ def test_comentarios_devuelve_datos_falsos():
     cuerpo = respuesta.json()
     assert cuerpo["total"] == 4
     assert len(cuerpo["comentarios"]) == 4
-    # El contrato provisional tiene exactamente estos tres campos.
-    assert set(cuerpo["comentarios"][0]) == {"fecha", "comentario", "clasificacion"}
+    # Comentario crudo, con la misma forma que expone ValleData.
+    assert set(cuerpo["comentarios"][0]) == {
+        "id",
+        "municipio",
+        "dataset_id",
+        "usuario",
+        "texto_es",
+        "texto_en",
+        "fecha",
+    }
 
 
 def test_comentarios_requiere_token():
@@ -28,4 +36,4 @@ def test_cliente_falso_entrega_comentarios_tipados():
     # Prueba directa del cliente falso, sin pasar por HTTP.
     comentarios = ClienteValleDataFalso().obtener_comentarios()
     assert len(comentarios) == 4
-    assert comentarios[0].clasificacion in {"positivo", "negativo", "neutro"}
+    assert comentarios[0].municipio == "alcala"

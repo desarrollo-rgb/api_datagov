@@ -1,18 +1,28 @@
 """Modelos de datos (contrato) que usa la API.
 
-`Comentario` es el contrato PROVISIONAL de lo que expone la API ValleData en el Flujo 2.
-Segun lo definido por ahora, cada comentario trae tres campos. Cuando el equipo de
-ValleData cierre el contrato definitivo, se ajusta aqui; como el resto del codigo depende
-de este modelo (no de un diccionario suelto), el cambio queda contenido en un solo lugar.
+`Comentario` es el comentario CRUDO tal como lo expone la API ValleData en el Flujo 2
+(sin clasificar). La clasificacion de sentimiento NO vive en esta API: la agrega despues
+el DAG y se guarda en BigQuery. DataGov solo transporta el comentario tal cual.
+
+Debe coincidir con lo que ValleData expone. Al vivir en un solo lugar, si el contrato
+cambia, el ajuste queda contenido aqui.
 """
 
 from pydantic import BaseModel
 
 
 class Comentario(BaseModel):
-    # Fecha del comentario en UTC, formato ISO 8601 (provisional: aun es texto).
+    # Id del comentario dentro de su municipio. NO es unico entre municipios:
+    # la clave real es la combinacion municipio + id.
+    id: int
+    # Municipio de origen del comentario.
+    municipio: str
+    # Id del dataset comentado.
+    dataset_id: str
+    # Autor del comentario.
+    usuario: str
+    # Texto del comentario separado por idioma.
+    texto_es: str | None
+    texto_en: str | None
+    # Fecha de creacion en UTC, formato ISO 8601.
     fecha: str
-    # El texto del comentario del ciudadano.
-    comentario: str
-    # Clasificacion del comentario (p. ej. "positivo", "negativo", "neutro").
-    clasificacion: str

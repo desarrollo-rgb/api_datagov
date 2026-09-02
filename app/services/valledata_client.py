@@ -4,8 +4,9 @@ Mismo patron que el repositorio de BigQuery: UNA interfaz, DOS implementaciones.
 - ClienteValleDataFalso: comentarios de ejemplo en memoria (para desarrollar sin ValleData).
 - ClienteValleDataHTTP: llamadas HTTP reales a la API ValleData.
 
-El contrato (ruta, campos) es PROVISIONAL: se ajustara cuando ValleData lo cierre. Como
-todo vive tras esta interfaz, ese cambio no tocara los endpoints que sirven al DAG.
+DataGov consume el comentario CRUDO que expone ValleData y lo reexpone tal cual para el
+DAG. No lo clasifica (eso lo hace el DAG despues). La forma del comentario debe coincidir
+con lo que ValleData entrega en `GET /api/v1/comentarios`.
 """
 
 from typing import Protocol
@@ -22,13 +23,13 @@ class ClienteValleData(Protocol):
 
 
 class ClienteValleDataFalso:
-    """Comentarios de ejemplo, para desarrollar sin la API ValleData real."""
+    """Comentarios de ejemplo, con la MISMA forma que expone ValleData de verdad."""
 
     _EJEMPLOS: list[dict] = [
-        {"fecha": "2026-08-20T10:00:00Z", "comentario": "Buen conjunto de datos", "clasificacion": "positivo"},
-        {"fecha": "2026-08-20T11:30:00Z", "comentario": "Faltan los datos de 2025", "clasificacion": "negativo"},
-        {"fecha": "2026-08-21T09:15:00Z", "comentario": "Muy util, gracias", "clasificacion": "positivo"},
-        {"fecha": "2026-08-21T16:45:00Z", "comentario": "Descargue el archivo sin problema", "clasificacion": "neutro"},
+        {"id": 1, "municipio": "alcala", "dataset_id": "d-100", "usuario": "ana", "texto_es": "Buen conjunto de datos", "texto_en": "Good dataset", "fecha": "2026-08-20T10:00:00Z"},
+        {"id": 2, "municipio": "alcala", "dataset_id": "d-100", "usuario": "luis", "texto_es": "Faltan los datos de 2025", "texto_en": "2025 data is missing", "fecha": "2026-08-20T11:30:00Z"},
+        {"id": 1, "municipio": "cerrito", "dataset_id": "d-200", "usuario": "sara", "texto_es": "Muy util, gracias", "texto_en": "Very useful, thanks", "fecha": "2026-08-21T09:15:00Z"},
+        {"id": 1, "municipio": "guacari", "dataset_id": "d-300", "usuario": "pedro", "texto_es": "El archivo no abre", "texto_en": "The file won't open", "fecha": "2026-08-19T14:00:00Z"},
     ]
 
     def obtener_comentarios(self) -> list[Comentario]:
@@ -36,10 +37,7 @@ class ClienteValleDataFalso:
 
 
 class ClienteValleDataHTTP:
-    """Implementacion real: obtiene los comentarios de ValleData por HTTP.
-
-    La ruta '/comentarios' y la forma de la respuesta son PROVISIONALES.
-    """
+    """Implementacion real: obtiene los comentarios de ValleData por HTTP."""
 
     def __init__(self) -> None:
         import httpx
@@ -52,9 +50,12 @@ class ClienteValleDataHTTP:
         )
 
     def obtener_comentarios(self) -> list[Comentario]:
-        respuesta = self._cliente.get("/comentarios")
+        respuesta = self._cliente.get("/api/v1/comentarios")
         respuesta.raise_for_status()
-        return [Comentario.model_validate(item) for item in respuesta.json()]
+        # ValleData responde {"comentarios": [...], "total": N, "municipios_con_error": [...]}.
+        # Nos quedamos con la lista de comentarios.
+        cuerpo = respuesta.json()
+        return [Comentario.model_validate(item) for item in cuerpo["comentarios"]]
 
 
 def get_cliente_valledata() -> ClienteValleData:
