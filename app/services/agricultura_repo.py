@@ -27,16 +27,57 @@ class AgriculturaRepo(Protocol):
 class AgriculturaRepoFalso:
     """Datos de ejemplo, para desarrollar sin credenciales ni tabla reales.
 
-    Las columnas imitan como se veria la tabla real, para que cuando llegue BigQuery
-    el resto de la app no note el cambio.
+    Las columnas imitan la tabla real `gold_cultivos_valle_geo` (las 27 columnas),
+    para que cuando llegue BigQuery el resto de la app no note el cambio. Los valores
+    son inventados pero con la forma y el tipo correctos.
     """
 
     _FILAS_EJEMPLO: list[dict] = [
-        {"municipio": "Alcalá", "cultivo": "café", "area_hectareas": 1200, "produccion_toneladas": 980, "anio": 2026},
-        {"municipio": "Cerrito", "cultivo": "caña", "area_hectareas": 3400, "produccion_toneladas": 25600, "anio": 2026},
-        {"municipio": "Guacarí", "cultivo": "maíz", "area_hectareas": 850, "produccion_toneladas": 4200, "anio": 2026},
-        {"municipio": "Pradera", "cultivo": "plátano", "area_hectareas": 640, "produccion_toneladas": 7300, "anio": 2026},
-        {"municipio": "Yotoco", "cultivo": "aguacate", "area_hectareas": 410, "produccion_toneladas": 3100, "anio": 2026},
+        {
+            "tipo_cultivo": "permanente", "anio": 2026, "semestre": 1.0,
+            "codigo_municipio": 76248.0, "municipio": "El Cerrito",
+            "latitud": 3.68, "longitud": -76.31, "altura_snm": 987.0,
+            "temperatura_media": 24.5,
+            "superficie_piso_calido_x": 12000.0, "superficie_piso_medio_x": 4500.0,
+            "superficie_piso_frio_x": 800.0, "superficie_piso_paramo_x": 0.0,
+            "codigo_cultivo": 101, "nombre_cultivo": "caña de azúcar",
+            "hectareas_sembradas": 3400.0, "hectareas_cosechadas": 3200.0,
+            "indice_oni": -0.5, "latitud_dec": 3.6845, "longitud_dec": -76.3112,
+            "distancia_cavasa_km": 42.7, "wkt_geometry": "POINT(-76.3112 3.6845)",
+            "piso_predominante": "cálido",
+            "superficie_piso_calido_y": 12000.0, "superficie_piso_medio_y": 4500.0,
+            "superficie_piso_frio_y": 800.0, "superficie_piso_paramo_y": 0.0,
+        },
+        {
+            "tipo_cultivo": "permanente", "anio": 2026, "semestre": 1.0,
+            "codigo_municipio": 76736.0, "municipio": "Sevilla",
+            "latitud": 4.27, "longitud": -75.93, "altura_snm": 1580.0,
+            "temperatura_media": 19.2,
+            "superficie_piso_calido_x": 3000.0, "superficie_piso_medio_x": 9000.0,
+            "superficie_piso_frio_x": 2500.0, "superficie_piso_paramo_x": 100.0,
+            "codigo_cultivo": 202, "nombre_cultivo": "café",
+            "hectareas_sembradas": 1200.0, "hectareas_cosechadas": 1150.0,
+            "indice_oni": -0.5, "latitud_dec": 4.2712, "longitud_dec": -75.9345,
+            "distancia_cavasa_km": 118.4, "wkt_geometry": "POINT(-75.9345 4.2712)",
+            "piso_predominante": "medio",
+            "superficie_piso_calido_y": 3000.0, "superficie_piso_medio_y": 9000.0,
+            "superficie_piso_frio_y": 2500.0, "superficie_piso_paramo_y": 100.0,
+        },
+        {
+            "tipo_cultivo": "transitorio", "anio": 2026, "semestre": 2.0,
+            "codigo_municipio": 76520.0, "municipio": "Palmira",
+            "latitud": 3.53, "longitud": -76.30, "altura_snm": 1001.0,
+            "temperatura_media": 23.8,
+            "superficie_piso_calido_x": 15000.0, "superficie_piso_medio_x": 3000.0,
+            "superficie_piso_frio_x": 500.0, "superficie_piso_paramo_x": 0.0,
+            "codigo_cultivo": 303, "nombre_cultivo": "maíz",
+            "hectareas_sembradas": 850.0, "hectareas_cosechadas": 820.0,
+            "indice_oni": -0.5, "latitud_dec": 3.5394, "longitud_dec": -76.3036,
+            "distancia_cavasa_km": 25.1, "wkt_geometry": "POINT(-76.3036 3.5394)",
+            "piso_predominante": "cálido",
+            "superficie_piso_calido_y": 15000.0, "superficie_piso_medio_y": 3000.0,
+            "superficie_piso_frio_y": 500.0, "superficie_piso_paramo_y": 0.0,
+        },
     ]
 
     def obtener_filas(self, limite: int) -> list[dict]:
@@ -73,8 +114,10 @@ class AgriculturaRepoBigQuery:
         # consumidor (como `limite`) van SIEMPRE como parametros, nunca concatenados:
         # asi se evita la inyeccion SQL.
         tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset}.{s.bigquery_tabla_agricultura}`"
+        # SELECT *: exponemos la tabla gold tal cual (todas sus columnas). Asi, si la
+        # tabla cambia de columnas mas adelante, el endpoint las refleja sin tocar codigo.
         consulta = f"""
-            SELECT municipio, cultivo, area_hectareas, produccion_toneladas, anio
+            SELECT *
             FROM {tabla}
             LIMIT @limite
         """

@@ -19,8 +19,10 @@ class Comentario(BaseModel):
     municipio: str
     # Id del dataset comentado.
     dataset_id: str
-    # Autor del comentario.
-    usuario: str
+    # Autor del comentario. Puede ser nulo: en CKAN los comentarios pueden ser
+    # anonimos, asi que ValleData a veces envia usuario=null. Debe coincidir con
+    # el contrato de ValleData.
+    usuario: str | None
     # Texto del comentario separado por idioma.
     texto_es: str | None
     texto_en: str | None

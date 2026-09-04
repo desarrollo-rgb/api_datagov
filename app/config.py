@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # --- Identidad y ubicacion en GCP ---
     gcp_project_id: str = "proyecto-dummy"
     bigquery_dataset: str = "agricultura_dataset"
-    bigquery_tabla_agricultura: str = "agricultura"
+    bigquery_tabla_agricultura: str = "gold_cultivos_valle_geo"
 
     # Ruta al archivo de llave de la service account (solo para desarrollo local).
     # En Cloud Run / GKE se deja vacia: la identidad la aporta la SA del servicio.
