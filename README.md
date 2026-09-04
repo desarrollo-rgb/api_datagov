@@ -7,9 +7,7 @@ ValleData. Tiene dos responsabilidades:
 2. **Consumir los comentarios** que expone ValleData (que a su vez los lee de los portales
    CKAN) y **reexponerlos** para que un DAG de analítica los ingiera.
 
-> Para entender **por qué** existe este servicio y cómo encaja en el ecosistema, lee los
-> documentos de la carpeta [`documentacion/`](documentacion). Este README es para
-> **instalar, configurar, correr y contribuir**.
+Este README cubre cómo **instalar, configurar, correr y contribuir**.
 
 ---
 
@@ -180,7 +178,7 @@ el código).
 | `USAR_DATOS_FALSOS` | `true` = datos de ejemplo; `false` = BigQuery real | `true` |
 | `GCP_PROJECT_ID` | Proyecto de Google Cloud | `proyecto-dummy` |
 | `BIGQUERY_DATASET` | Dataset donde vive la tabla | `agricultura_dataset` |
-| `BIGQUERY_TABLA_AGRICULTURA` | Nombre de la tabla | `gold_cultivos_valle_geo` |
+| `BIGQUERY_TABLA_CULTIVOS` | Nombre de la tabla | `gold_cultivos_valle_geo` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (solo local) | `./agricultura-sa.json` |
 
 ### Flujo 2 — cliente hacia ValleData (comentarios)
@@ -206,7 +204,7 @@ el código).
    USAR_DATOS_FALSOS=false
    GCP_PROJECT_ID=co-valledata-prd
    BIGQUERY_DATASET=valledata_qa
-   BIGQUERY_TABLA_AGRICULTURA=gold_cultivos_valle_geo
+   BIGQUERY_TABLA_CULTIVOS=gold_cultivos_valle_geo
    GOOGLE_APPLICATION_CREDENTIALS=C:\ruta\a\tu-sa.json
    ```
 3. La service account necesita **dos** permisos: `BigQuery Data Viewer` (sobre el dataset) y
@@ -340,13 +338,3 @@ poetry add --group dev nombre        # solo para desarrollo/pruebas
 | Quitar una librería | `poetry remove nombre` |
 | Ver las dependencias instaladas | `poetry show` |
 | Abrir una consola dentro del entorno | `poetry env activate` |
-
----
-
-## Documentos de referencia
-
-En la carpeta [`documentacion/`](documentacion):
-
-- [`CONTEXTO-API-DATAGOV.md`](documentacion/CONTEXTO-API-DATAGOV.md) — qué es este servicio y por qué existe.
-- [`IMPLEMENTACION-API-DATAGOV.md`](documentacion/IMPLEMENTACION-API-DATAGOV.md) — notas de construcción por fases.
-- [`CONTEXTO-API-VALLEDATA.md`](documentacion/CONTEXTO-API-VALLEDATA.md) y [`IMPLEMENTACION-API-VALLEDATA.md`](documentacion/IMPLEMENTACION-API-VALLEDATA.md) — el otro lado de la integración.

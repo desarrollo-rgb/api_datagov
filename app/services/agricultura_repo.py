@@ -113,7 +113,7 @@ class AgriculturaRepoBigQuery:
         # por eso se puede interpolar. En cambio, los VALORES que podria enviar un
         # consumidor (como `limite`) van SIEMPRE como parametros, nunca concatenados:
         # asi se evita la inyeccion SQL.
-        tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset}.{s.bigquery_tabla_agricultura}`"
+        tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset}.{s.bigquery_tabla_cultivos}`"
         # SELECT *: exponemos la tabla gold tal cual (todas sus columnas). Asi, si la
         # tabla cambia de columnas mas adelante, el endpoint las refleja sin tocar codigo.
         consulta = f"""

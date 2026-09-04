@@ -10,9 +10,13 @@ datos sensibles.
   falla, la plataforma DEJA DE ENVIARLE TRAFICO hasta que se recupere, sin reiniciarlo.
 """
 
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
+
+logger = logging.getLogger("datagov")
 
 router = APIRouter(tags=["salud"])
 
@@ -69,6 +73,7 @@ def _dependencias_listas() -> tuple[bool, str]:
         configuracion = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
         cliente.query("SELECT 1", job_config=configuracion)
         return True, "bigquery reachable"
-    except Exception:
-        # No exponemos hacia afuera el detalle tecnico del error.
+    except Exception as e:
+        # Al consumidor no le exponemos el detalle, pero SI lo registramos en el log.
+        logger.warning("Readiness: BigQuery no responde: %s", e)
         return False, "bigquery unavailable"
