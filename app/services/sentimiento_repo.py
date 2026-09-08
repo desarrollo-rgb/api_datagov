@@ -19,7 +19,7 @@ from app.config import get_settings
 class SentimientoRepo(Protocol):
     """Contrato: cualquier repositorio de sentimiento sabe entregar filas."""
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         ...
 
 
@@ -36,7 +36,7 @@ class SentimientoRepoFalso:
         {"municipio": "guacari", "id_dataset": "28ae3104-f5a0-43fa-9153-f27921d13796", "total_comentarios": 2, "positivos": 1, "negativos": 0, "neutros": 1, "confianza_promedio": 0.7456, "emocion_predominante": "NEU"},
     ]
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         return self._FILAS_EJEMPLO[:limite]
 
 
@@ -60,7 +60,7 @@ class SentimientoRepoBigQuery:
 
         self._client = bigquery.Client(project=self._settings.gcp_project_id)
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         from google.cloud import bigquery
 
         s = self._settings
@@ -69,16 +69,16 @@ class SentimientoRepoBigQuery:
         # puede interpolar. El VALOR que envia el consumidor (`limite`) va SIEMPRE como
         # parametro, nunca concatenado: asi se evita la inyeccion SQL.
         tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset}.{s.bigquery_tabla_gold_comentarios_sentimiento}`"
-        consulta = f"""
-            SELECT *
-            FROM {tabla}
-            LIMIT @limite
-        """
-        configuracion = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("limite", "INT64", limite),
-            ]
-        )
+        # Sin limite (None) -> todas las filas; con limite -> LIMIT parametrizado
+        # (el valor va como parametro, nunca concatenado: evita inyeccion SQL).
+        if limite is None:
+            consulta = f"SELECT * FROM {tabla}"
+            configuracion = bigquery.QueryJobConfig()
+        else:
+            consulta = f"SELECT * FROM {tabla} LIMIT @limite"
+            configuracion = bigquery.QueryJobConfig(
+                query_parameters=[bigquery.ScalarQueryParameter("limite", "INT64", limite)]
+            )
         from app.services.bigquery_util import ejecutar_consulta
 
         return ejecutar_consulta(self._client, consulta, configuracion)

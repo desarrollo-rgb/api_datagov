@@ -34,6 +34,29 @@ def test_agricultura_devuelve_datos_falsos():
     }
 
 
+def test_agricultura_sin_limite_trae_todos():
+    # Sin el parametro `limite` se devuelven todas las filas (el falso tiene 3).
+    respuesta = cliente.get("/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo", headers=CABECERA_VALIDA)
+    assert respuesta.status_code == 200
+    assert respuesta.json()["total_devuelto"] == 3
+
+
+def test_agricultura_sin_full_select_topa_en_maximo(monkeypatch):
+    # Con PERMITIR_FULL_SELECT=false y sin `limite`, se topa en LIMITE_MAXIMO_SELECT
+    # (aunque el falso tenga 3 filas). Aqui el maximo se fija en 2.
+    monkeypatch.setenv("PERMITIR_FULL_SELECT", "false")
+    monkeypatch.setenv("LIMITE_MAXIMO_SELECT", "2")
+    get_settings.cache_clear()
+    try:
+        respuesta = cliente.get(
+            "/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo", headers=CABECERA_VALIDA
+        )
+        assert respuesta.status_code == 200
+        assert respuesta.json()["total_devuelto"] == 2
+    finally:
+        get_settings.cache_clear()
+
+
 def test_agricultura_respeta_el_limite():
     respuesta = cliente.get("/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo?limite=1000", headers=CABECERA_VALIDA)
     assert respuesta.status_code == 200

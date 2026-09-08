@@ -17,10 +17,10 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | --- | --- | --- |
 | `GET /health` | Liveness: `{"status": "alive"}`. Para la plataforma. | No |
 | `GET /ready` | Readiness: revisa que BigQuery responda. `200` o `503`. | No |
-| `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1000). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_comentarios_sentimiento` | Filas del análisis de sentimiento de comentarios desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_comentarios_sentimiento` | Filas del análisis de sentimiento de comentarios desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
 | `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). | **Sí** |
 
 **Convención de la URL** — después de `/api/v1/` va un verbo que indica la dirección del dato:

@@ -20,7 +20,7 @@ from app.config import get_settings
 class AgriculturaRepo(Protocol):
     """Contrato: cualquier repositorio de agricultura sabe entregar filas."""
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         ...
 
 
@@ -80,7 +80,7 @@ class AgriculturaRepoFalso:
         },
     ]
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         return self._FILAS_EJEMPLO[:limite]
 
 
@@ -104,7 +104,7 @@ class AgriculturaRepoBigQuery:
 
         self._client = bigquery.Client(project=self._settings.gcp_project_id)
 
-    def obtener_filas(self, limite: int) -> list[dict]:
+    def obtener_filas(self, limite: int | None) -> list[dict]:
         from google.cloud import bigquery
 
         s = self._settings
@@ -116,16 +116,16 @@ class AgriculturaRepoBigQuery:
         tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset}.{s.bigquery_tabla_gold_cultivos_valle_geo}`"
         # SELECT *: exponemos la tabla gold tal cual (todas sus columnas). Asi, si la
         # tabla cambia de columnas mas adelante, el endpoint las refleja sin tocar codigo.
-        consulta = f"""
-            SELECT *
-            FROM {tabla}
-            LIMIT @limite
-        """
-        configuracion = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("limite", "INT64", limite),
-            ]
-        )
+        # Sin limite (None) -> todas las filas; con limite -> LIMIT parametrizado
+        # (el valor va como parametro, nunca concatenado: evita inyeccion SQL).
+        if limite is None:
+            consulta = f"SELECT * FROM {tabla}"
+            configuracion = bigquery.QueryJobConfig()
+        else:
+            consulta = f"SELECT * FROM {tabla} LIMIT @limite"
+            configuracion = bigquery.QueryJobConfig(
+                query_parameters=[bigquery.ScalarQueryParameter("limite", "INT64", limite)]
+            )
         from app.services.bigquery_util import ejecutar_consulta
 
         return ejecutar_consulta(self._client, consulta, configuracion)
