@@ -20,6 +20,7 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1000). | **Sí** |
 | `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
 | `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_comentarios_sentimiento` | Filas del análisis de sentimiento de comentarios desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
 | `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). | **Sí** |
 
 **Convención de la URL** — después de `/api/v1/` va un verbo que indica la dirección del dato:
@@ -187,6 +188,7 @@ el código).
 | `BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO` | Nombre de la tabla de cultivos | `gold_cultivos_valle_geo` |
 | `BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO` | Nombre de la tabla del modelo de rendimiento | `gold_modelo_rendimiento` |
 | `BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION` | Nombre de la tabla del pronóstico de producción | `gold_pronostico_produccion` |
+| `BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO` | Nombre de la tabla de sentimiento de comentarios | `gold_comentarios_sentimiento` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (solo local) | `./agricultura-sa.json` |
 
 ### Flujo 2 — cliente hacia ValleData (comentarios)
@@ -215,6 +217,7 @@ el código).
    BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO=gold_cultivos_valle_geo
    BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO=gold_modelo_rendimiento
    BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION=gold_pronostico_produccion
+   BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO=gold_comentarios_sentimiento
    GOOGLE_APPLICATION_CREDENTIALS=C:\ruta\a\tu-sa.json
    ```
 3. La service account necesita **dos** permisos: `BigQuery Data Viewer` (sobre el dataset) y
@@ -280,6 +283,7 @@ api_datagov/
 │       ├── agricultura_repo.py # de dónde salen los cultivos: falso ↔ BigQuery
 │       ├── rendimiento_repo.py # de dónde sale el rendimiento: falso ↔ BigQuery
 │       ├── pronostico_repo.py  # de dónde sale el pronóstico: falso ↔ BigQuery
+│       ├── sentimiento_repo.py # de dónde sale el sentimiento: falso ↔ BigQuery
 │       └── valledata_client.py # cómo se piden los comentarios: falso ↔ HTTP a ValleData
 ├── tests/                      # pruebas (conftest.py fuerza modo falso)
 ├── .env.example                # plantilla de configuración (SÍ se versiona)

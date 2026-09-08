@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     bigquery_tabla_gold_cultivos_valle_geo: str = "gold_cultivos_valle_geo"
     bigquery_tabla_gold_modelo_rendimiento: str = "gold_modelo_rendimiento"
     bigquery_tabla_gold_pronostico_produccion: str = "gold_pronostico_produccion"
+    bigquery_tabla_gold_comentarios_sentimiento: str = "gold_comentarios_sentimiento"
 
     # Ruta al archivo de llave de la service account (solo para desarrollo local).
     # En Cloud Run / GKE se deja vacia: la identidad la aporta la SA del servicio.

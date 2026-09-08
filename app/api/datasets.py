@@ -6,6 +6,7 @@ from app.security import verificar_token
 from app.services.agricultura_repo import AgriculturaRepo, get_agricultura_repo
 from app.services.pronostico_repo import PronosticoRepo, get_pronostico_repo
 from app.services.rendimiento_repo import RendimientoRepo, get_rendimiento_repo
+from app.services.sentimiento_repo import SentimientoRepo, get_sentimiento_repo
 
 # La dependencia va en el router: protege TODOS los endpoints de datasets de una vez.
 router = APIRouter(
@@ -63,6 +64,23 @@ async def obtener_pronostico(
     filas = repo.obtener_filas(limite=limite)
     return {
         "identificador": "pronostico",
+        "filas": filas,
+        "total_devuelto": len(filas),
+    }
+
+
+@router.get(
+    "/gold_comentarios_sentimiento",
+    summary="Obtener información de la tabla de sentimiento de comentarios",
+)
+async def obtener_sentimiento(
+    limite: int = Query(default=100, ge=1, le=1000, description="Maximo de filas a devolver."),
+    repo: SentimientoRepo = Depends(get_sentimiento_repo),
+) -> dict:
+    """Devuelve el análisis de sentimiento de comentarios de la tabla gold_comentarios_sentimiento en BigQuery."""
+    filas = repo.obtener_filas(limite=limite)
+    return {
+        "identificador": "sentimiento",
         "filas": filas,
         "total_devuelto": len(filas),
     }
