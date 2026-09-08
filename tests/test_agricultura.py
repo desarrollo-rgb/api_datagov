@@ -25,7 +25,7 @@ def test_agricultura_devuelve_datos_falsos():
         "superficie_piso_calido_x", "superficie_piso_medio_x",
         "superficie_piso_frio_x", "superficie_piso_paramo_x",
         "codigo_cultivo", "nombre_cultivo", "hectareas_sembradas",
-        "hectareas_cosechadas", "indice_oni", "latitud_dec", "longitud_dec",
+        "hectareas_cosechadas", "precio", "indice_oni", "latitud_dec", "longitud_dec",
         "distancia_cavasa_km", "wkt_geometry", "piso_predominante",
         "superficie_piso_calido_y", "superficie_piso_medio_y",
         "superficie_piso_frio_y", "superficie_piso_paramo_y",
