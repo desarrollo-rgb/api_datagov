@@ -46,6 +46,7 @@ INFO:  10.0.0.5 - "GET /api/v1/consume/bd_ckan/comments HTTP/1.1" 502
 | 1 | Llamada sin token | **401** | `"No autorizado"` | Línea de acceso `... 401` | 🟡 Mal consumo |
 | 2 | Token equivocado | **401** | `"No autorizado"` | Línea de acceso `... 401` | 🟡 Mal consumo |
 | 3 | `?limite=0` (o > 1.000.000) en un dataset | **422** | detalle de validación | Línea de acceso `... 422` | 🟡 Mal consumo |
+| 3b | `?desde=<fecha inválida>` en comentarios | **422** | `"Parametro 'desde' invalido..."` | Línea de acceso `... 422` | 🟡 Mal consumo |
 | 4 | Ruta que no existe | **404** | `"Not Found"` | Línea de acceso `... 404` | 🟡 Mal consumo |
 | 5 | ValleData caído (al pedir comentarios) | **502** | `"No se pudo contactar a la API ValleData. Intenta más tarde."` | `WARNING: ValleData no disponible: [Errno 111] Connection refused` | 🔵 Dependencia |
 | 6 | ValleData responde con error (p. ej. 500) | **502** | `"La API ValleData respondió con un error."` | `WARNING: ValleData respondio con error: codigo 500` | 🔵 Dependencia |

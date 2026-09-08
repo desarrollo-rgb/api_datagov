@@ -84,6 +84,31 @@ costoso. Recomendación para producción:
 
 ---
 
+## Filtro por fecha en comentarios (`desde`)
+
+El endpoint `consume/bd_ckan/comments` acepta un parámetro opcional **`desde`** para traer
+solo los comentarios creados desde una fecha en adelante (`created >= desde`).
+
+| Petición | Resultado |
+| --- | --- |
+| **sin `desde`** (o `?desde=`) | Todos los comentarios |
+| `?desde=2026-07-29` | Desde ese día (00:00) en adelante |
+| `?desde=2026-07-29T23:58:33Z` | Desde esa fecha y hora exacta |
+| `?desde=<formato inválido>` | **422** |
+
+Acepta **ISO 8601**: fecha sola (`2026-07-29`) o fecha y hora (`2026-07-29T23:58:33Z`, con
+o sin zona). El flujo es:
+
+1. DataGov **valida** el formato (responde `422` si es inválido, sin molestar a ValleData).
+2. DataGov **reenvía** `desde` a ValleData.
+3. ValleData hace el **filtrado real** sobre PostgreSQL (`WHERE created >= desde`).
+
+En modo falso, DataGov filtra sus comentarios de ejemplo para comportarse igual sin ValleData.
+
+> Ejemplo: `GET /api/v1/consume/bd_ckan/comments?desde=2026-07-29`
+
+---
+
 ## 1. Requisitos (se instalan una sola vez en tu máquina)
 
 | Herramienta | Para qué sirve |
