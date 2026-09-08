@@ -21,7 +21,7 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
 | `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
 | `GET /api/v1/expose/dataset_valledata/gold_comentarios_sentimiento` | Filas del análisis de sentimiento de comentarios desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
-| `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). | **Sí** |
+| `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). Parámetro opcional `desde` (fecha ISO 8601) que se reenvía a ValleData para filtrar `created >= desde`. | **Sí** |
 
 **Convención de la URL** — después de `/api/v1/` va un verbo que indica la dirección del dato:
 - **`expose`**: datos que DataGov **expone** desde su propia fuente (BigQuery).

@@ -9,10 +9,28 @@ DAG. No lo clasifica (eso lo hace el DAG despues). La forma del comentario debe 
 con lo que ValleData entrega en `GET /api/v1/comentarios`.
 """
 
+from datetime import datetime, timezone
 from typing import Protocol
 
 from app.config import get_settings
 from app.models.schemas import Comentario
+
+
+def _a_utc_naive(dt: datetime) -> datetime:
+    """Normaliza a UTC sin zona, para comparar fechas con y sin zona de forma consistente."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def _fecha_es_mayor_o_igual(fecha_iso: str, desde_iso: str) -> bool:
+    """True si `fecha_iso` >= `desde_iso` (ambos strings ISO). Si no se pueden parsear, incluye."""
+    try:
+        f = datetime.fromisoformat(fecha_iso)
+        d = datetime.fromisoformat(desde_iso)
+    except (ValueError, TypeError):
+        return True
+    return _a_utc_naive(f) >= _a_utc_naive(d)
 
 
 class ClienteValleData(Protocol):
@@ -21,9 +39,12 @@ class ClienteValleData(Protocol):
     Devolvemos ambos (igual que ValleData) para que el DAG sepa si la data viene
     incompleta: si un municipio fallo en ValleData, sus comentarios no vienen, pero el
     resto si, y su nombre aparece en `municipios_con_error`.
+
+    `desde` (fecha ISO 8601) se reenvia tal cual a ValleData para filtrar por fecha de
+    creacion (created >= desde). Si es None, se traen todos.
     """
 
-    def obtener_comentarios(self) -> tuple[list[Comentario], list[str]]:
+    def obtener_comentarios(self, desde: str | None = None) -> tuple[list[Comentario], list[str]]:
         ...
 
 
@@ -38,8 +59,10 @@ class ClienteValleDataFalso:
         {"id": 1, "municipio": "guacari", "dataset_id": "d-300", "usuario": None, "texto_es": "El archivo no abre", "texto_en": "The file won't open", "fecha": "2026-08-19T14:00:00Z"},
     ]
 
-    def obtener_comentarios(self) -> tuple[list[Comentario], list[str]]:
+    def obtener_comentarios(self, desde: str | None = None) -> tuple[list[Comentario], list[str]]:
         comentarios = [Comentario(**c) for c in self._EJEMPLOS]
+        if desde:
+            comentarios = [c for c in comentarios if _fecha_es_mayor_o_igual(c.fecha, desde)]
         return comentarios, []  # ningun municipio con error en modo falso
 
 
@@ -56,13 +79,15 @@ class ClienteValleDataHTTP:
             timeout=s.valledata_timeout_segundos,
         )
 
-    def obtener_comentarios(self) -> tuple[list[Comentario], list[str]]:
+    def obtener_comentarios(self, desde: str | None = None) -> tuple[list[Comentario], list[str]]:
         import httpx
 
         from app.errors import ErrorValleDataNoDisponible, ErrorValleDataRespuesta
 
+        # Si viene `desde`, se lo reenviamos a ValleData tal cual para que filtre por fecha.
+        params = {"desde": desde} if desde else {}
         try:
-            respuesta = self._cliente.get("/api/v1/expose/bd_ckan/comments")
+            respuesta = self._cliente.get("/api/v1/expose/bd_ckan/comments", params=params)
             respuesta.raise_for_status()
         except httpx.HTTPStatusError as e:
             # ValleData contesto, pero con 4xx/5xx (p. ej. token malo, o fallo interno).

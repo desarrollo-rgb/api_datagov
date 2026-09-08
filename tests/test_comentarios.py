@@ -37,6 +37,25 @@ def test_comentarios_acepta_usuario_anonimo():
     assert any(c["usuario"] is None for c in comentarios)
 
 
+def test_comentarios_filtra_por_fecha():
+    # El falso tiene guacari en 2026-08-19; los demas en 08-20/08-21. Con desde=2026-08-20
+    # se excluye guacari -> 3 comentarios. Confirma que `desde` se aplica.
+    respuesta = cliente.get(
+        "/api/v1/consume/bd_ckan/comments?desde=2026-08-20", headers=CABECERA_VALIDA
+    )
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["total"] == 3
+    assert all(c["municipio"] != "guacari" for c in cuerpo["comentarios"])
+
+
+def test_comentarios_desde_invalido_da_422():
+    respuesta = cliente.get(
+        "/api/v1/consume/bd_ckan/comments?desde=ayer", headers=CABECERA_VALIDA
+    )
+    assert respuesta.status_code == 422
+
+
 def test_comentarios_requiere_token():
     respuesta = cliente.get("/api/v1/consume/bd_ckan/comments")
     assert respuesta.status_code == 401
@@ -46,7 +65,7 @@ def test_comentarios_si_valledata_falla_devuelve_502():
     # Simulamos que ValleData no responde: el cliente lanza ErrorValleDataNoDisponible.
     # El manejador debe traducirlo a un 502 limpio, no a un 500 feo.
     class ClienteQueFalla:
-        def obtener_comentarios(self):
+        def obtener_comentarios(self, desde=None):
             raise ErrorValleDataNoDisponible("conexion rechazada")
 
     app.dependency_overrides[get_cliente_valledata] = lambda: ClienteQueFalla()
