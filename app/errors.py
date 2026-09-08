@@ -28,6 +28,14 @@ class ErrorValleDataRespuesta(Exception):
     """ValleData respondio, pero con un codigo de error (4xx/5xx)."""
 
 
+class ErrorBigQueryNoDisponible(Exception):
+    """No se pudo consultar BigQuery (tabla inexistente, permisos, conectividad).
+
+    Es un problema de una dependencia/config, NO un bug del codigo: por eso se traduce a
+    un 502, no a un 500.
+    """
+
+
 def registrar_manejadores_errores(app: FastAPI) -> None:
     """Conecta los manejadores de error a la aplicacion (se llama desde main.py)."""
 
@@ -47,6 +55,16 @@ def registrar_manejadores_errores(app: FastAPI) -> None:
         return JSONResponse(
             status_code=status.HTTP_502_BAD_GATEWAY,
             content={"detail": "La API ValleData respondio con un error."},
+        )
+
+    @app.exception_handler(ErrorBigQueryNoDisponible)
+    async def _bigquery_no_disponible(request: Request, exc: ErrorBigQueryNoDisponible):
+        # 502: el problema es de BigQuery o de la configuracion (tabla/permisos), no del
+        # codigo. El detalle tecnico va al log; al cliente, un mensaje generico.
+        logger.warning("BigQuery no disponible: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            content={"detail": "No se pudo consultar BigQuery. Intenta mas tarde."},
         )
 
     @app.exception_handler(Exception)

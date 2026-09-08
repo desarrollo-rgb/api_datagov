@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
+from app.errors import ErrorBigQueryNoDisponible
 from app.main import app
+from app.services.agricultura_repo import get_agricultura_repo
 
 cliente = TestClient(app)
 
@@ -52,3 +54,22 @@ def test_agricultura_con_token_incorrecto_da_401():
     cabecera_mala = {"Authorization": "Bearer token-inventado-que-no-sirve"}
     respuesta = cliente.get("/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo", headers=cabecera_mala)
     assert respuesta.status_code == 401
+
+
+def test_agricultura_si_bigquery_falla_devuelve_502():
+    # Simulamos que BigQuery no responde (tabla/permisos/red): el repo lanza
+    # ErrorBigQueryNoDisponible. El manejador debe traducirlo a un 502 limpio, no a un 500.
+    class RepoQueFalla:
+        def obtener_filas(self, limite: int) -> list[dict]:
+            raise ErrorBigQueryNoDisponible("tabla no encontrada")
+
+    app.dependency_overrides[get_agricultura_repo] = lambda: RepoQueFalla()
+    try:
+        respuesta = cliente.get(
+            "/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo",
+            headers=CABECERA_VALIDA,
+        )
+        assert respuesta.status_code == 502
+        assert "BigQuery" in respuesta.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()

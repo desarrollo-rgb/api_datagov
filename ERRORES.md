@@ -52,7 +52,7 @@ INFO:  10.0.0.5 - "GET /api/v1/consume/bd_ckan/comments HTTP/1.1" 502
 | 7 | `VALLEDATA_API_TOKEN` no coincide con el de ValleData | **502** | `"La API ValleData respondió con un error."` | `WARNING: ValleData respondio con error: codigo 401` | 🟡 Mala config |
 | 8 | Un municipio falló en ValleData | **200** | `municipios_con_error: ["ulloa"]` | (el detalle se registra en ValleData, no aquí) | 🔵 Dependencia |
 | 9 | `/ready` con BigQuery caído o sin credenciales | **503** | `"not ready"` | `WARNING: Readiness: BigQuery no responde: ...` | 🔵 Infra |
-| 10 | BigQuery sin permisos / tabla no existe (al pedir cultivos) | **500** | `"Error interno del servidor."` | `ERROR` + **stack trace completo** | 🔴 Revisar config/código |
+| 10 | BigQuery sin permisos / tabla no existe / caído (al pedir un dataset) | **502** | `"No se pudo consultar BigQuery. Intenta más tarde."` | `WARNING: BigQuery no disponible: 404 Not found: Table ...` | 🔵 Dependencia/config |
 | 11 | Excepción no prevista (bug real) | **500** | `"Error interno del servidor."` | `ERROR` + **stack trace completo** | 🔴 Bug de código |
 
 ---
@@ -65,8 +65,6 @@ INFO:  10.0.0.5 - "GET /api/v1/consume/bd_ckan/comments HTTP/1.1" 502
   `502`, no un `200` vacío.
 - **Fallos parciales de datos se informan, no se ocultan:** `municipios_con_error` indica
   qué municipios no vinieron, para que el DAG sepa si la ingesta está incompleta.
-
-> Nota: hoy los errores de BigQuery en el endpoint de cultivos caen en el `500` genérico
-> (esa consulta no está envuelta como el cliente de ValleData). Queda registrado completo
-> en el log. Un ajuste futuro sería envolverlos para responder `502`/`503` (dependencia) en
-> vez de `500`.
+- **Los fallos de BigQuery son dependencia, no bug:** una tabla que no existe, permisos
+  faltantes o BigQuery caído responden `502` (no `500`), para no confundir un problema de
+  datos/config con un error del código.

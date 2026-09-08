@@ -126,8 +126,9 @@ class AgriculturaRepoBigQuery:
                 bigquery.ScalarQueryParameter("limite", "INT64", limite),
             ]
         )
-        resultado = self._client.query(consulta, job_config=configuracion).result()
-        return [dict(fila) for fila in resultado]
+        from app.services.bigquery_util import ejecutar_consulta
+
+        return ejecutar_consulta(self._client, consulta, configuracion)
 
 
 def get_agricultura_repo() -> AgriculturaRepo:
