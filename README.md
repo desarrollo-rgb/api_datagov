@@ -45,6 +45,45 @@ de falso a real **no cambia ni una línea de código**, solo el `.env`.
 
 ---
 
+## El parámetro `limite` y el control de volumen
+
+Todos los endpoints de datasets (`expose/...`) aceptan un parámetro opcional **`limite`**
+que controla cuántas filas se devuelven. Su comportamiento se **configura por entorno**,
+sin tocar código (solo reiniciar):
+
+| Variable | Qué hace | Por defecto |
+| --- | --- | --- |
+| `LIMITE_MINIMO_SELECT` | Valor mínimo que se acepta en `limite`. | `1` |
+| `LIMITE_MAXIMO_SELECT` | Valor máximo que se acepta en `limite`. | `1000000` |
+| `PERMITIR_FULL_SELECT` | Qué hacer cuando **no** se envía `limite`. | `true` |
+
+### Cómo se comporta
+
+| Petición | `PERMITIR_FULL_SELECT=true` | `PERMITIR_FULL_SELECT=false` |
+| --- | --- | --- |
+| **sin `limite`** (o `?limite=`) | Devuelve **todas** las filas | Devuelve hasta `LIMITE_MAXIMO_SELECT` |
+| `?limite=N` dentro del rango | Devuelve N filas | Devuelve N filas |
+| `?limite=0` o `> LIMITE_MAXIMO_SELECT` | **422** (fuera de rango) | **422** (fuera de rango) |
+
+En resumen: el rango `[mínimo, máximo]` valida lo que el consumidor pide explícitamente, y
+`PERMITIR_FULL_SELECT` decide si "sin límite" significa *todo* o *hasta el máximo*.
+
+### Por qué importa (costo de BigQuery)
+
+Los endpoints usan `SELECT *`, y en BigQuery **se cobra por bytes leídos** (el `LIMIT` no
+reduce lo que se escanea en una tabla sin particionar). Un "full select" sobre una tabla
+gold grande (p. ej. `gold_cultivos_valle_geo` con su columna `wkt_geometry`) puede ser
+costoso. Recomendación para producción:
+
+- Poner **`PERMITIR_FULL_SELECT=false`** y un **`LIMITE_MAXIMO_SELECT`** razonable
+  (p. ej. `50000`), para que nadie dispare un escaneo completo sin querer.
+- En desarrollo, `true` es cómodo para explorar.
+
+> Ejemplo: `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo?limite=100`
+> devuelve 100 filas. Sin `limite`, devuelve todo (o hasta el máximo, según el flag).
+
+---
+
 ## 1. Requisitos (se instalan una sola vez en tu máquina)
 
 | Herramienta | Para qué sirve |
