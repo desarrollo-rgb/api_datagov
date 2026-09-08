@@ -13,7 +13,7 @@ from app.security import verificar_token
 from app.services.valledata_client import ClienteValleData, get_cliente_valledata
 
 router = APIRouter(
-    prefix="/api/v1/bd_ckan",
+    prefix="/api/v1/consume/bd_ckan",
     tags=["bases de datos ckan"],
     dependencies=[Depends(verificar_token)],
 )

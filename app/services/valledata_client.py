@@ -62,7 +62,7 @@ class ClienteValleDataHTTP:
         from app.errors import ErrorValleDataNoDisponible, ErrorValleDataRespuesta
 
         try:
-            respuesta = self._cliente.get("/api/v1/bd_ckan/comments")
+            respuesta = self._cliente.get("/api/v1/expose/bd_ckan/comments")
             respuesta.raise_for_status()
         except httpx.HTTPStatusError as e:
             # ValleData contesto, pero con 4xx/5xx (p. ej. token malo, o fallo interno).

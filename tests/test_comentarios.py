@@ -10,7 +10,7 @@ CABECERA_VALIDA = {"Authorization": f"Bearer {get_settings().api_token}"}
 
 
 def test_comentarios_devuelve_datos_falsos():
-    respuesta = cliente.get("/api/v1/bd_ckan/comments", headers=CABECERA_VALIDA)
+    respuesta = cliente.get("/api/v1/consume/bd_ckan/comments", headers=CABECERA_VALIDA)
     assert respuesta.status_code == 200
 
     cuerpo = respuesta.json()
@@ -33,12 +33,12 @@ def test_comentarios_devuelve_datos_falsos():
 def test_comentarios_acepta_usuario_anonimo():
     # ValleData envia usuario=null en comentarios anonimos: DataGov debe transportarlo
     # sin romper (antes exigia usuario obligatorio).
-    comentarios = cliente.get("/api/v1/bd_ckan/comments", headers=CABECERA_VALIDA).json()["comentarios"]
+    comentarios = cliente.get("/api/v1/consume/bd_ckan/comments", headers=CABECERA_VALIDA).json()["comentarios"]
     assert any(c["usuario"] is None for c in comentarios)
 
 
 def test_comentarios_requiere_token():
-    respuesta = cliente.get("/api/v1/bd_ckan/comments")
+    respuesta = cliente.get("/api/v1/consume/bd_ckan/comments")
     assert respuesta.status_code == 401
 
 
@@ -51,7 +51,7 @@ def test_comentarios_si_valledata_falla_devuelve_502():
 
     app.dependency_overrides[get_cliente_valledata] = lambda: ClienteQueFalla()
     try:
-        respuesta = cliente.get("/api/v1/bd_ckan/comments", headers=CABECERA_VALIDA)
+        respuesta = cliente.get("/api/v1/consume/bd_ckan/comments", headers=CABECERA_VALIDA)
         assert respuesta.status_code == 502
         assert "ValleData" in respuesta.json()["detail"]
     finally:

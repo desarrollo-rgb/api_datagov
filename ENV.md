@@ -27,7 +27,9 @@ modo de desarrollo). Pensada para quien configura y despliega el servicio.
 | `USAR_DATOS_FALSOS` | Interruptor de modo. `true` = datos de ejemplo en memoria; `false` = consulta BigQuery real. | Sí | | `false` |
 | `GCP_PROJECT_ID` | Proyecto de Google Cloud donde vive el dataset. | Sí | | `co-valledata-prd` |
 | `BIGQUERY_DATASET` | Dataset de BigQuery que contiene la tabla. | Sí | | `valledata_qa` |
-| `BIGQUERY_TABLA_CULTIVOS` | Nombre de la tabla de cultivos. | Sí | | `gold_cultivos_valle_geo` |
+| `BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO` | Nombre de la tabla de cultivos. | Sí | | `gold_cultivos_valle_geo` |
+| `BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO` | Nombre de la tabla del modelo de rendimiento. | Sí | | `gold_modelo_rendimiento` |
+| `BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION` | Nombre de la tabla del pronóstico de producción. | Sí | | `gold_pronostico_produccion` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Ruta al archivo `.json` de la service account. **Solo para local.** | No | 🔒 (el archivo) | **Vacío en producción**: la identidad la aporta la SA adjunta al servicio (Cloud Run / GKE). En local, la ruta al `.json`. |
 
 **Permisos que necesita la service account** (rol IAM):
@@ -71,7 +73,9 @@ API_TOKEN=<secreto: openssl rand -hex 32>
 USAR_DATOS_FALSOS=false
 GCP_PROJECT_ID=co-valledata-prd
 BIGQUERY_DATASET=valledata_qa
-BIGQUERY_TABLA_CULTIVOS=gold_cultivos_valle_geo
+BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO=gold_cultivos_valle_geo
+BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO=gold_modelo_rendimiento
+BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION=gold_pronostico_produccion
 GOOGLE_APPLICATION_CREDENTIALS=
 
 # Flujo 2 — cliente hacia ValleData

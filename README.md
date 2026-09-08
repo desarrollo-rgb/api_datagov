@@ -17,8 +17,14 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | --- | --- | --- |
 | `GET /health` | Liveness: `{"status": "alive"}`. Para la plataforma. | No |
 | `GET /ready` | Readiness: revisa que BigQuery responda. `200` o `503`. | No |
-| `GET /api/v1/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1000). | **Sí** |
-| `GET /api/v1/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1000). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
+| `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1000). | **Sí** |
+| `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). | **Sí** |
+
+**Convención de la URL** — después de `/api/v1/` va un verbo que indica la dirección del dato:
+- **`expose`**: datos que DataGov **expone** desde su propia fuente (BigQuery).
+- **`consume`**: datos que DataGov **consume** de otra API (ValleData) y reexpone.
 
 **Documentación interactiva** (Swagger) cuando el servidor está arriba: http://localhost:8000/docs
 
@@ -178,7 +184,9 @@ el código).
 | `USAR_DATOS_FALSOS` | `true` = datos de ejemplo; `false` = BigQuery real | `true` |
 | `GCP_PROJECT_ID` | Proyecto de Google Cloud | `proyecto-dummy` |
 | `BIGQUERY_DATASET` | Dataset donde vive la tabla | `agricultura_dataset` |
-| `BIGQUERY_TABLA_CULTIVOS` | Nombre de la tabla | `gold_cultivos_valle_geo` |
+| `BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO` | Nombre de la tabla de cultivos | `gold_cultivos_valle_geo` |
+| `BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO` | Nombre de la tabla del modelo de rendimiento | `gold_modelo_rendimiento` |
+| `BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION` | Nombre de la tabla del pronóstico de producción | `gold_pronostico_produccion` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (solo local) | `./agricultura-sa.json` |
 
 ### Flujo 2 — cliente hacia ValleData (comentarios)
@@ -204,7 +212,9 @@ el código).
    USAR_DATOS_FALSOS=false
    GCP_PROJECT_ID=co-valledata-prd
    BIGQUERY_DATASET=valledata_qa
-   BIGQUERY_TABLA_CULTIVOS=gold_cultivos_valle_geo
+   BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO=gold_cultivos_valle_geo
+   BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO=gold_modelo_rendimiento
+   BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION=gold_pronostico_produccion
    GOOGLE_APPLICATION_CREDENTIALS=C:\ruta\a\tu-sa.json
    ```
 3. La service account necesita **dos** permisos: `BigQuery Data Viewer` (sobre el dataset) y
@@ -237,13 +247,13 @@ Los endpoints de datos exigen un **token** en la cabecera `Authorization: Bearer
 Sin token → **401**:
 
 ```bash
-curl -i "http://localhost:8000/api/v1/dataset_valledata/gold_cultivos_valle_geo"
+curl -i "http://localhost:8000/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo"
 ```
 
 Con el token → **200 + datos**:
 
 ```bash
-curl -i -H "Authorization: Bearer TU_TOKEN" "http://localhost:8000/api/v1/dataset_valledata/gold_cultivos_valle_geo?limite=3"
+curl -i -H "Authorization: Bearer TU_TOKEN" "http://localhost:8000/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo?limite=3"
 ```
 
 Desde el navegador: entra a http://localhost:8000/docs, pulsa **Authorize** 🔒 (arriba a la
@@ -268,6 +278,8 @@ api_datagov/
 │   │   └── comentarios.py      # GET .../comments (reexpone ValleData)
 │   └── services/
 │       ├── agricultura_repo.py # de dónde salen los cultivos: falso ↔ BigQuery
+│       ├── rendimiento_repo.py # de dónde sale el rendimiento: falso ↔ BigQuery
+│       ├── pronostico_repo.py  # de dónde sale el pronóstico: falso ↔ BigQuery
 │       └── valledata_client.py # cómo se piden los comentarios: falso ↔ HTTP a ValleData
 ├── tests/                      # pruebas (conftest.py fuerza modo falso)
 ├── .env.example                # plantilla de configuración (SÍ se versiona)
