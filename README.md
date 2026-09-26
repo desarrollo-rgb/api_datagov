@@ -109,6 +109,27 @@ En modo falso, DataGov filtra sus comentarios de ejemplo para comportarse igual 
 
 ---
 
+## Campos de un comentario
+
+Cada elemento de `comentarios` tiene esta forma (DataGov solo **transporta** lo que expone
+ValleData; no lo modifica ni lo clasifica):
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | int | Id del comentario **dentro de su municipio** (no es único entre municipios). |
+| `municipio` | string | Municipio de origen del comentario. |
+| `dataset_id` | string | Id del dataset comentado. |
+| `nombre_dataset` | string \| null | **Nombre legible del dataset** (`title` en CKAN). Nulo si el dataset no se encontró. |
+| `usuario` | string \| null | Autor del comentario. Nulo en comentarios anónimos. |
+| `texto_es` | string \| null | Texto en español. |
+| `texto_en` | string \| null | Texto en inglés. |
+| `fecha` | string | Fecha de creación en UTC, ISO 8601. |
+
+> El campo `nombre_dataset` lo resuelve ValleData (con un `JOIN` con la tabla `package`);
+> DataGov lo reexpone tal cual.
+
+---
+
 ## 1. Requisitos (se instalan una sola vez en tu máquina)
 
 | Herramienta | Para qué sirve |
