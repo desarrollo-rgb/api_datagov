@@ -52,11 +52,11 @@ class ClienteValleDataFalso:
     """Comentarios de ejemplo, con la MISMA forma que expone ValleData de verdad."""
 
     _EJEMPLOS: list[dict] = [
-        {"id": 1, "municipio": "alcala", "dataset_id": "d-100", "usuario": "ana", "texto_es": "Buen conjunto de datos", "texto_en": "Good dataset", "fecha": "2026-08-20T10:00:00Z"},
-        {"id": 2, "municipio": "alcala", "dataset_id": "d-100", "usuario": "luis", "texto_es": "Faltan los datos de 2025", "texto_en": "2025 data is missing", "fecha": "2026-08-20T11:30:00Z"},
-        {"id": 1, "municipio": "cerrito", "dataset_id": "d-200", "usuario": "sara", "texto_es": "Muy util, gracias", "texto_en": "Very useful, thanks", "fecha": "2026-08-21T09:15:00Z"},
+        {"id": 1, "municipio": "alcala", "dataset_id": "d-100", "nombre_dataset": "Cultivos del Valle 2026", "usuario": "ana", "texto_es": "Buen conjunto de datos", "texto_en": "Good dataset", "fecha": "2026-08-20T10:00:00Z"},
+        {"id": 2, "municipio": "alcala", "dataset_id": "d-100", "nombre_dataset": "Cultivos del Valle 2026", "usuario": "luis", "texto_es": "Faltan los datos de 2025", "texto_en": "2025 data is missing", "fecha": "2026-08-20T11:30:00Z"},
+        {"id": 1, "municipio": "cerrito", "dataset_id": "d-200", "nombre_dataset": "Presupuesto municipal", "usuario": "sara", "texto_es": "Muy util, gracias", "texto_en": "Very useful, thanks", "fecha": "2026-08-21T09:15:00Z"},
         # Comentario anonimo: usuario=None, como llegan muchos de CKAN en la realidad.
-        {"id": 1, "municipio": "guacari", "dataset_id": "d-300", "usuario": None, "texto_es": "El archivo no abre", "texto_en": "The file won't open", "fecha": "2026-08-19T14:00:00Z"},
+        {"id": 1, "municipio": "guacari", "dataset_id": "d-300", "nombre_dataset": None, "usuario": None, "texto_es": "El archivo no abre", "texto_en": "The file won't open", "fecha": "2026-08-19T14:00:00Z"},
     ]
 
     def obtener_comentarios(self, desde: str | None = None) -> tuple[list[Comentario], list[str]]:

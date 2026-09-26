@@ -19,6 +19,9 @@ class Comentario(BaseModel):
     municipio: str
     # Id del dataset comentado.
     dataset_id: str
+    # Nombre legible del dataset (title en CKAN). Puede ser nulo. ValleData lo obtiene con
+    # un JOIN con la tabla package; DataGov solo lo transporta.
+    nombre_dataset: str | None
     # Autor del comentario. Puede ser nulo: en CKAN los comentarios pueden ser
     # anonimos, asi que ValleData a veces envia usuario=null. Debe coincidir con
     # el contrato de ValleData.
