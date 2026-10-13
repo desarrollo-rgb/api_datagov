@@ -20,30 +20,16 @@ modo de desarrollo). Pensada para quien configura y despliega el servicio.
 
 ---
 
-## Límites de consulta
-
-| Variable | Qué hace | Obligatoria | 🔒 | Valor real a usar |
-| --- | --- | :---: | :---: | --- |
-| `LIMITE_MINIMO_SELECT` | Valor mínimo aceptado en el parámetro `limite` de los endpoints. | No (por defecto 1) | | `1` |
-| `LIMITE_MAXIMO_SELECT` | Valor máximo aceptado en el parámetro `limite`. | No (por defecto 1000000) | | `1000000` |
-| `PERMITIR_FULL_SELECT` | `true` = sin `limite` se devuelven TODAS las filas; `false` = sin `limite` se topa en `LIMITE_MAXIMO_SELECT`. | No (por defecto true) | | `true` |
-
-> Se leen al arrancar: cambiarlos solo requiere **reiniciar** el servicio, no re-desplegar.
-
----
-
-## Flujo 1 — BigQuery (datos de cultivos)
+## BigQuery — vistas de la analítica de comentarios
 
 | Variable | Qué hace | Obligatoria | 🔒 | Valor real a usar |
 | --- | --- | :---: | :---: | --- |
 | `USAR_DATOS_FALSOS` | Interruptor de modo. `true` = datos de ejemplo en memoria; `false` = consulta BigQuery real. | Sí | | `false` |
-| `GCP_PROJECT_ID` | Proyecto de Google Cloud donde vive el dataset. | Sí | | `co-valledata-prd` |
-| `BIGQUERY_DATASET` | Dataset de BigQuery que contiene la tabla. | Sí | | `valledata_qa` |
-| `BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO` | Nombre de la tabla de cultivos. | Sí | | `gold_cultivos_valle_geo` |
-| `BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO` | Nombre de la tabla del modelo de rendimiento. | Sí | | `gold_modelo_rendimiento` |
-| `BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION` | Nombre de la tabla del pronóstico de producción. | Sí | | `gold_pronostico_produccion` |
-| `BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO` | Nombre de la tabla de sentimiento de comentarios. | Sí | | `gold_comentarios_sentimiento` |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta al archivo `.json` de la service account. **Solo para local.** | No | 🔒 (el archivo) | **Vacío en producción**: la identidad la aporta la SA adjunta al servicio (Cloud Run / GKE). En local, la ruta al `.json`. |
+| `GCP_PROJECT_ID` | Proyecto de Google Cloud donde viven las vistas y se ejecutan las consultas. | Sí | | `datagov-477214` |
+| `BIGQUERY_DATASET_COMENTARIOS` | Dataset con las vistas de la analítica de comentarios. | Sí | | `gold_valledata` |
+| `BIGQUERY_VISTA_COMENTARIOS_DETALLE` | Vista del detalle de comentarios analizados. | Sí | | `valledata_api_comentarios_detalle` |
+| `BIGQUERY_VISTA_COMENTARIOS_RESUMEN_DATASET` | Vista del resumen de comentarios por dataset. | Sí | | `valledata_api_comentarios_resumen_dataset` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta al archivo `.json` de la service account. **Solo para local.** | No | 🔒 (el archivo) | **Vacío**: usa Application Default Credentials (tu cuenta con `gcloud auth application-default login` en local, o la SA adjunta en Cloud Run / GKE). |
 
 **Permisos que necesita la service account** (rol IAM):
 - `BigQuery Data Viewer` sobre el **dataset**.
@@ -68,8 +54,8 @@ DataGov participa en dos relaciones de autenticación. Estas igualdades **deben 
 
 | Este valor… | …debe ser igual a… | Porque |
 | --- | --- | --- |
-| `DataGov.API_TOKEN` | `ValleData.DATAGOV_API_TOKEN` | ValleData consume el endpoint de cultivos de DataGov (Flujo 1). |
-| `DataGov.VALLEDATA_API_TOKEN` | `ValleData.API_TOKEN` | DataGov consume el endpoint de comentarios de ValleData (Flujo 2). |
+| `DataGov.API_TOKEN` | `ValleData.DATAGOV_API_TOKEN` | ValleData consume las vistas de comentarios que expone DataGov. |
+| `DataGov.VALLEDATA_API_TOKEN` | `ValleData.API_TOKEN` | DataGov consume el endpoint de comentarios de ValleData. |
 
 Si alguna no coincide, el consumidor recibe `401` y el endpoint que depende de ese llamado
 responde `502`.
@@ -82,22 +68,15 @@ responde `502`.
 # Seguridad
 API_TOKEN=<secreto: openssl rand -hex 32>
 
-# Limites de consulta
-LIMITE_MINIMO_SELECT=1
-LIMITE_MAXIMO_SELECT=1000000
-PERMITIR_FULL_SELECT=true
-
-# Flujo 1 — BigQuery
+# BigQuery — vistas de comentarios
 USAR_DATOS_FALSOS=false
-GCP_PROJECT_ID=co-valledata-prd
-BIGQUERY_DATASET=valledata_qa
-BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO=gold_cultivos_valle_geo
-BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO=gold_modelo_rendimiento
-BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION=gold_pronostico_produccion
-BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO=gold_comentarios_sentimiento
+GCP_PROJECT_ID=datagov-477214
+BIGQUERY_DATASET_COMENTARIOS=gold_valledata
+BIGQUERY_VISTA_COMENTARIOS_DETALLE=valledata_api_comentarios_detalle
+BIGQUERY_VISTA_COMENTARIOS_RESUMEN_DATASET=valledata_api_comentarios_resumen_dataset
 GOOGLE_APPLICATION_CREDENTIALS=
 
-# Flujo 2 — cliente hacia ValleData
+# Cliente hacia ValleData (comentarios crudos de CKAN)
 USAR_VALLEDATA_FALSO=false
 VALLEDATA_API_BASE_URL=https://<host-de-valledata>
 VALLEDATA_API_TOKEN=<secreto: igual al API_TOKEN de ValleData>

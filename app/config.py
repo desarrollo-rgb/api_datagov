@@ -21,27 +21,21 @@ class Settings(BaseSettings):
     # fallar al arrancar que quedar sin proteccion por un olvido.
     api_token: str
 
-    # --- Limites de consulta ---
-    # Rango permitido para el parametro `limite`, y si se permite el "full select"
-    # (traer todo sin limite). Configurables por entorno; cambiarlos solo requiere reiniciar.
-    limite_minimo_select: int = 1
-    limite_maximo_select: int = 1000000
-    # True  -> sin `limite` se devuelven TODAS las filas.
-    # False -> sin `limite` se topa en LIMITE_MAXIMO_SELECT.
-    permitir_full_select: bool = True
-
     # --- Modo de datos ---
     # True  -> responde con datos de ejemplo, sin tocar BigQuery (para desarrollar).
     # False -> consulta BigQuery de verdad (cuando ya tengas credenciales y tabla).
     usar_datos_falsos: bool = True
 
-    # --- Identidad y ubicacion en GCP ---
+    # --- Identidad en GCP ---
+    # Proyecto GCP donde viven las vistas y donde se ejecutan las consultas.
     gcp_project_id: str = "proyecto-dummy"
-    bigquery_dataset: str = "agricultura_dataset"
-    bigquery_tabla_gold_cultivos_valle_geo: str = "gold_cultivos_valle_geo"
-    bigquery_tabla_gold_modelo_rendimiento: str = "gold_modelo_rendimiento"
-    bigquery_tabla_gold_pronostico_produccion: str = "gold_pronostico_produccion"
-    bigquery_tabla_gold_comentarios_sentimiento: str = "gold_comentarios_sentimiento"
+
+    # --- Comentarios (dataset + vistas) ---
+    # Resultado de la analitica que hace el DAG/Composer sobre los comentarios de CKAN.
+    # Son VISTAS (no tablas), en su propio dataset.
+    bigquery_dataset_comentarios: str = "gold_valledata"
+    bigquery_vista_comentarios_detalle: str = "valledata_api_comentarios_detalle"
+    bigquery_vista_comentarios_resumen_dataset: str = "valledata_api_comentarios_resumen_dataset"
 
     # Ruta al archivo de llave de la service account (solo para desarrollo local).
     # En Cloud Run / GKE se deja vacia: la identidad la aporta la SA del servicio.

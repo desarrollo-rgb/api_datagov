@@ -7,37 +7,42 @@ cliente = TestClient(app)
 
 CABECERA_VALIDA = {"Authorization": f"Bearer {get_settings().api_token}"}
 
-RUTA = "/api/v1/expose/dataset_valledata/gold_modelo_rendimiento"
+RUTA = "/api/v1/expose/gold_valledata/valledata_api_comentarios_detalle"
 
 
-def test_rendimiento_devuelve_datos_falsos():
+def test_detalle_devuelve_datos_falsos():
     respuesta = cliente.get(f"{RUTA}?limite=2", headers=CABECERA_VALIDA)
     assert respuesta.status_code == 200
 
     cuerpo = respuesta.json()
-    assert cuerpo["identificador"] == "rendimiento"
+    assert cuerpo["identificador"] == "comentarios_detalle"
     assert cuerpo["total_devuelto"] == 2
     assert len(cuerpo["filas"]) == 2
     assert set(cuerpo["filas"][0]) == {
-        "anio",
+        "id_comentario",
+        "fecha_publicacion",
+        "fecha_hora_publicacion",
+        "id_municipio_dataset",
         "municipio",
-        "cultivo",
-        "rendimiento_toneladas_ha",
-        "promedio_oni",
+        "dataset_id",
+        "nombre_dataset",
+        "sentimiento",
+        "emocion",
+        "texto_es",
     }
 
 
-def test_rendimiento_respeta_el_limite():
-    respuesta = cliente.get(f"{RUTA}?limite=1000", headers=CABECERA_VALIDA)
+def test_detalle_respeta_el_limite():
+    respuesta = cliente.get(f"{RUTA}?limite=1", headers=CABECERA_VALIDA)
     assert respuesta.status_code == 200
-    assert respuesta.json()["total_devuelto"] == 3
+    assert respuesta.json()["total_devuelto"] == 1
 
 
-def test_rendimiento_rechaza_limite_invalido():
+def test_detalle_rechaza_limite_invalido():
     respuesta = cliente.get(f"{RUTA}?limite=0", headers=CABECERA_VALIDA)
     assert respuesta.status_code == 422
 
 
-def test_rendimiento_sin_token_da_401():
+def test_detalle_sin_token_da_401():
     respuesta = cliente.get(RUTA)
     assert respuesta.status_code == 401

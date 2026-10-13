@@ -1,11 +1,12 @@
 # API DataGov
 
 API en **FastAPI** que actúa como **capa de integración del proyecto DataGov** frente a
-ValleData. Tiene dos responsabilidades:
+ValleData, en torno al flujo de **comentarios** ciudadanos. Tiene dos responsabilidades:
 
-1. **Exponer datos de cultivos** desde BigQuery (tabla `gold_cultivos_valle_geo`).
-2. **Consumir los comentarios** que expone ValleData (que a su vez los lee de los portales
-   CKAN) y **reexponerlos** para que un DAG de analítica los ingiera.
+1. **Exponer las vistas de la analítica de comentarios** desde BigQuery (dataset
+   `gold_valledata`): el detalle por comentario y el resumen por dataset.
+2. **Consumir los comentarios crudos** que expone ValleData (que a su vez los lee de los
+   portales CKAN) y **reexponerlos** para que un DAG de analítica los ingiera.
 
 Este README cubre cómo **instalar, configurar, correr y contribuir**.
 
@@ -17,11 +18,9 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | --- | --- | --- |
 | `GET /health` | Liveness: `{"status": "alive"}`. Para la plataforma. | No |
 | `GET /ready` | Readiness: revisa que BigQuery responda. `200` o `503`. | No |
-| `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo` | Filas de cultivos desde BigQuery (Flujo 1). Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_modelo_rendimiento` | Filas del modelo de rendimiento desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_pronostico_produccion` | Filas del pronóstico de producción desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
-| `GET /api/v1/expose/dataset_valledata/gold_comentarios_sentimiento` | Filas del análisis de sentimiento de comentarios desde BigQuery. Parámetro `limite` (1–1.000.000; vacío = todas). | **Sí** |
-| `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error` (Flujo 2). Parámetro opcional `desde` (fecha ISO 8601) que se reenvía a ValleData para filtrar `created >= desde`. | **Sí** |
+| `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_detalle` | Detalle de comentarios ya analizados (un comentario por fila, con sentimiento y emoción) desde la vista en BigQuery. Parámetro `limite`. | **Sí** |
+| `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_resumen_dataset` | Resumen de comentarios por dataset (totales y porcentajes) desde la vista en BigQuery. Parámetro `limite`. | **Sí** |
+| `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error`. Parámetro opcional `desde` (fecha ISO 8601) que se reenvía a ValleData para filtrar `created >= desde`. | **Sí** |
 
 **Convención de la URL** — después de `/api/v1/` va un verbo que indica la dirección del dato:
 - **`expose`**: datos que DataGov **expone** desde su propia fuente (BigQuery).
@@ -45,42 +44,23 @@ de falso a real **no cambia ni una línea de código**, solo el `.env`.
 
 ---
 
-## El parámetro `limite` y el control de volumen
+## El parámetro `limite`
 
 Todos los endpoints de datasets (`expose/...`) aceptan un parámetro opcional **`limite`**
-que controla cuántas filas se devuelven. Su comportamiento se **configura por entorno**,
-sin tocar código (solo reiniciar):
+que controla cuántas filas se devuelven:
 
-| Variable | Qué hace | Por defecto |
-| --- | --- | --- |
-| `LIMITE_MINIMO_SELECT` | Valor mínimo que se acepta en `limite`. | `1` |
-| `LIMITE_MAXIMO_SELECT` | Valor máximo que se acepta en `limite`. | `1000000` |
-| `PERMITIR_FULL_SELECT` | Qué hacer cuando **no** se envía `limite`. | `true` |
+| Petición | Resultado |
+| --- | --- |
+| **sin `limite`** (o `?limite=`) | Devuelve **todas** las filas |
+| `?limite=N` (N ≥ 1) | Devuelve N filas |
+| `?limite=0` o negativo | **422** |
 
-### Cómo se comporta
-
-| Petición | `PERMITIR_FULL_SELECT=true` | `PERMITIR_FULL_SELECT=false` |
-| --- | --- | --- |
-| **sin `limite`** (o `?limite=`) | Devuelve **todas** las filas | Devuelve hasta `LIMITE_MAXIMO_SELECT` |
-| `?limite=N` dentro del rango | Devuelve N filas | Devuelve N filas |
-| `?limite=0` o `> LIMITE_MAXIMO_SELECT` | **422** (fuera de rango) | **422** (fuera de rango) |
-
-En resumen: el rango `[mínimo, máximo]` valida lo que el consumidor pide explícitamente, y
-`PERMITIR_FULL_SELECT` decide si "sin límite" significa *todo* o *hasta el máximo*.
-
-### Por qué importa (costo de BigQuery)
-
-Los endpoints usan `SELECT *`, y en BigQuery **se cobra por bytes leídos** (el `LIMIT` no
-reduce lo que se escanea en una tabla sin particionar). Un "full select" sobre una tabla
-gold grande (p. ej. `gold_cultivos_valle_geo` con su columna `wkt_geometry`) puede ser
-costoso. Recomendación para producción:
-
-- Poner **`PERMITIR_FULL_SELECT=false`** y un **`LIMITE_MAXIMO_SELECT`** razonable
-  (p. ej. `50000`), para que nadie dispare un escaneo completo sin querer.
-- En desarrollo, `true` es cómodo para explorar.
-
-> Ejemplo: `GET /api/v1/expose/dataset_valledata/gold_cultivos_valle_geo?limite=100`
-> devuelve 100 filas. Sin `limite`, devuelve todo (o hasta el máximo, según el flag).
+> Cuidado con el costo en BigQuery: los endpoints usan `SELECT *` y **se cobra por bytes
+> leídos** (el `LIMIT` no reduce lo que se escanea en una tabla sin particionar). Para
+> consultas grandes, pide `limite` o considera vistas/tablas particionadas.
+>
+> Ejemplo: `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_detalle?limite=100`
+> devuelve 100 filas. Sin `limite`, devuelve todo.
 
 ---
 
@@ -263,20 +243,18 @@ el código).
 | --- | --- | --- |
 | `API_TOKEN` | Token que exige ESTA API. **Obligatorio** (si falta, no arranca). | Un valor de prueba |
 
-### Flujo 1 — BigQuery (cultivos)
+### BigQuery (vistas de comentarios)
 
 | Variable | Qué es | Desarrollo (falso) |
 | --- | --- | --- |
 | `USAR_DATOS_FALSOS` | `true` = datos de ejemplo; `false` = BigQuery real | `true` |
 | `GCP_PROJECT_ID` | Proyecto de Google Cloud | `proyecto-dummy` |
-| `BIGQUERY_DATASET` | Dataset donde vive la tabla | `agricultura_dataset` |
-| `BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO` | Nombre de la tabla de cultivos | `gold_cultivos_valle_geo` |
-| `BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO` | Nombre de la tabla del modelo de rendimiento | `gold_modelo_rendimiento` |
-| `BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION` | Nombre de la tabla del pronóstico de producción | `gold_pronostico_produccion` |
-| `BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO` | Nombre de la tabla de sentimiento de comentarios | `gold_comentarios_sentimiento` |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (solo local) | `./agricultura-sa.json` |
+| `BIGQUERY_DATASET_COMENTARIOS` | Dataset con las vistas de comentarios | `gold_valledata` |
+| `BIGQUERY_VISTA_COMENTARIOS_DETALLE` | Vista del detalle de comentarios analizados | `valledata_api_comentarios_detalle` |
+| `BIGQUERY_VISTA_COMENTARIOS_RESUMEN_DATASET` | Vista del resumen de comentarios por dataset | `valledata_api_comentarios_resumen_dataset` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Ruta a la llave de la service account (vacío = usa tu cuenta vía ADC) | *(vacío)* |
 
-### Flujo 2 — cliente hacia ValleData (comentarios)
+### Cliente hacia ValleData (comentarios crudos de CKAN)
 
 | Variable | Qué es | Desarrollo (falso) |
 | --- | --- | --- |
@@ -289,21 +267,23 @@ el código).
 
 ## 4. Pasar a datos reales
 
-### 4.1 BigQuery (Flujo 1)
+### 4.1 BigQuery (vistas de comentarios)
 
-1. Consigue la llave de la service account (`.json`) y colócala en la raíz del proyecto.
-   > Nómbrala terminada en `-sa.json` (p. ej. `datagov-sa.json`): el `.gitignore` ya
-   > ignora ese patrón, así que **no se subirá por error**.
+1. Autentícate con tu cuenta de Google (Application Default Credentials):
+   ```
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project datagov-477214
+   ```
+   > Alternativa: una service account con una llave `.json` terminada en `-sa.json` (el
+   > `.gitignore` ya ignora ese patrón) y apuntarla con `GOOGLE_APPLICATION_CREDENTIALS`.
 2. En tu `.env`:
    ```
    USAR_DATOS_FALSOS=false
-   GCP_PROJECT_ID=co-valledata-prd
-   BIGQUERY_DATASET=valledata_qa
-   BIGQUERY_TABLA_GOLD_CULTIVOS_VALLE_GEO=gold_cultivos_valle_geo
-   BIGQUERY_TABLA_GOLD_MODELO_RENDIMIENTO=gold_modelo_rendimiento
-   BIGQUERY_TABLA_GOLD_PRONOSTICO_PRODUCCION=gold_pronostico_produccion
-   BIGQUERY_TABLA_GOLD_COMENTARIOS_SENTIMIENTO=gold_comentarios_sentimiento
-   GOOGLE_APPLICATION_CREDENTIALS=C:\ruta\a\tu-sa.json
+   GCP_PROJECT_ID=datagov-477214
+   BIGQUERY_DATASET_COMENTARIOS=gold_valledata
+   BIGQUERY_VISTA_COMENTARIOS_DETALLE=valledata_api_comentarios_detalle
+   BIGQUERY_VISTA_COMENTARIOS_RESUMEN_DATASET=valledata_api_comentarios_resumen_dataset
+   GOOGLE_APPLICATION_CREDENTIALS=
    ```
 3. La service account necesita **dos** permisos: `BigQuery Data Viewer` (sobre el dataset) y
    `BigQuery Job User` (sobre el proyecto). Sin el segundo, no puede ejecutar consultas.
@@ -335,13 +315,13 @@ Los endpoints de datos exigen un **token** en la cabecera `Authorization: Bearer
 Sin token → **401**:
 
 ```bash
-curl -i "http://localhost:8000/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo"
+curl -i "http://localhost:8000/api/v1/expose/gold_valledata/valledata_api_comentarios_detalle"
 ```
 
 Con el token → **200 + datos**:
 
 ```bash
-curl -i -H "Authorization: Bearer TU_TOKEN" "http://localhost:8000/api/v1/expose/dataset_valledata/gold_cultivos_valle_geo?limite=3"
+curl -i -H "Authorization: Bearer TU_TOKEN" "http://localhost:8000/api/v1/expose/gold_valledata/valledata_api_comentarios_detalle?limite=3"
 ```
 
 Desde el navegador: entra a http://localhost:8000/docs, pulsa **Authorize** 🔒 (arriba a la
@@ -362,13 +342,11 @@ api_datagov/
 │   │   └── schemas.py          # contrato de datos (Comentario)
 │   ├── api/
 │   │   ├── health.py           # GET /health y GET /ready (públicos)
-│   │   ├── datasets.py         # GET .../gold_cultivos_valle_geo (BigQuery)
+│   │   ├── datasets.py         # GET .../gold_valledata/... (vistas de comentarios en BigQuery)
 │   │   └── comentarios.py      # GET .../comments (reexpone ValleData)
 │   └── services/
-│       ├── agricultura_repo.py # de dónde salen los cultivos: falso ↔ BigQuery
-│       ├── rendimiento_repo.py # de dónde sale el rendimiento: falso ↔ BigQuery
-│       ├── pronostico_repo.py  # de dónde sale el pronóstico: falso ↔ BigQuery
-│       ├── sentimiento_repo.py # de dónde sale el sentimiento: falso ↔ BigQuery
+│       ├── comentarios_detalle_repo.py  # detalle de comentarios analizados: falso ↔ BigQuery
+│       ├── comentarios_resumen_repo.py  # resumen por dataset: falso ↔ BigQuery
 │       └── valledata_client.py # cómo se piden los comentarios: falso ↔ HTTP a ValleData
 ├── tests/                      # pruebas (conftest.py fuerza modo falso)
 ├── .env.example                # plantilla de configuración (SÍ se versiona)

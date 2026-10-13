@@ -15,7 +15,7 @@ registrar_manejadores_errores(app)
 
 # Endpoints publicos de salud (para la infraestructura).
 app.include_router(health.router)
-# Endpoints de datos (protegidos por token).
+# Vistas de la analitica de comentarios, bajo el dataset gold_valledata (protegidas por token).
 app.include_router(datasets.router)
 # Endpoint de comentarios de ValleData, para el DAG (protegido por token).
 app.include_router(comentarios.router)
