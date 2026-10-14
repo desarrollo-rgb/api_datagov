@@ -9,17 +9,44 @@ de cumplirla:
 
 Es el resultado de la analitica que hace el DAG/Composer sobre los comentarios de CKAN:
 un comentario por fila, ya con su sentimiento y emocion. Esta API solo lo expone.
+
+Filtros opcionales:
+- `fecha_hora_publicacion` (datetime): trae los publicados DESDE esa fecha/hora en
+  adelante (fecha_hora_publicacion >= valor).
+- `municipio` (str en MAYUSCULA): trae solo los de ese municipio.
 """
 
+from datetime import datetime, timezone
 from typing import Protocol
 
 from app.config import get_settings
 
 
-class ComentariosDetalleRepo(Protocol):
-    """Contrato: cualquier repositorio de detalle sabe entregar filas."""
+def _a_utc_naive(dt: datetime) -> datetime:
+    """Normaliza a UTC sin zona, para comparar fechas con y sin zona de forma consistente."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
-    def obtener_filas(self, limite: int | None) -> list[dict]:
+
+def _fecha_es_mayor_o_igual(fecha_iso: str | None, desde: datetime) -> bool:
+    """True si `fecha_iso` (string ISO) es >= `desde`. Si no se puede parsear, la incluye."""
+    try:
+        dt = datetime.fromisoformat(fecha_iso)  # type: ignore[arg-type]
+    except (ValueError, TypeError):
+        return True
+    return _a_utc_naive(dt) >= desde
+
+
+class ComentariosDetalleRepo(Protocol):
+    """Contrato: cualquier repositorio de detalle sabe entregar filas (con filtros)."""
+
+    def obtener_filas(
+        self,
+        limite: int | None,
+        fecha_hora_publicacion: datetime | None = None,
+        municipio: str | None = None,
+    ) -> list[dict]:
         ...
 
 
@@ -53,8 +80,21 @@ class ComentariosDetalleRepoFalso:
         },
     ]
 
-    def obtener_filas(self, limite: int | None) -> list[dict]:
-        return self._FILAS_EJEMPLO[:limite]
+    def obtener_filas(
+        self,
+        limite: int | None,
+        fecha_hora_publicacion: datetime | None = None,
+        municipio: str | None = None,
+    ) -> list[dict]:
+        filas = self._FILAS_EJEMPLO
+        if municipio is not None:
+            filas = [f for f in filas if str(f["municipio"]).upper() == municipio]
+        if fecha_hora_publicacion is not None:
+            filas = [
+                f for f in filas
+                if _fecha_es_mayor_o_igual(f.get("fecha_hora_publicacion"), fecha_hora_publicacion)
+            ]
+        return filas[:limite]
 
 
 class ComentariosDetalleRepoBigQuery:
@@ -77,23 +117,41 @@ class ComentariosDetalleRepoBigQuery:
 
         self._client = bigquery.Client(project=self._settings.gcp_project_id)
 
-    def obtener_filas(self, limite: int | None) -> list[dict]:
+    def obtener_filas(
+        self,
+        limite: int | None,
+        fecha_hora_publicacion: datetime | None = None,
+        municipio: str | None = None,
+    ) -> list[dict]:
         from google.cloud import bigquery
 
         s = self._settings
 
-        # La vista vive en el dataset de comentarios (gold_valledata), no en el dataset
-        # principal. El NOMBRE viene de la configuracion (fuente confiable); el VALOR que
-        # envia el consumidor (`limite`) va SIEMPRE como parametro: evita inyeccion SQL.
+        # El NOMBRE de la vista viene de la configuracion (fuente confiable); los VALORES
+        # que envia el consumidor (municipio, fecha, limite) van SIEMPRE como parametros,
+        # nunca concatenados: asi se evita la inyeccion SQL.
         tabla = f"`{s.gcp_project_id}.{s.bigquery_dataset_comentarios}.{s.bigquery_vista_comentarios_detalle}`"
-        if limite is None:
-            consulta = f"SELECT * FROM {tabla}"
-            configuracion = bigquery.QueryJobConfig()
-        else:
-            consulta = f"SELECT * FROM {tabla} LIMIT @limite"
-            configuracion = bigquery.QueryJobConfig(
-                query_parameters=[bigquery.ScalarQueryParameter("limite", "INT64", limite)]
+
+        condiciones: list[str] = []
+        parametros: list = []
+        if municipio is not None:
+            condiciones.append("UPPER(municipio) = @municipio")
+            parametros.append(bigquery.ScalarQueryParameter("municipio", "STRING", municipio))
+        if fecha_hora_publicacion is not None:
+            # CAST a DATETIME para comparar sin importar si la columna es DATETIME, TIMESTAMP
+            # o STRING. El valor va como DATETIME (sin zona, normalizado a UTC).
+            condiciones.append("CAST(fecha_hora_publicacion AS DATETIME) >= @fecha")
+            parametros.append(
+                bigquery.ScalarQueryParameter("fecha", "DATETIME", fecha_hora_publicacion)
             )
+
+        where = (" WHERE " + " AND ".join(condiciones)) if condiciones else ""
+        consulta = f"SELECT * FROM {tabla}{where}"
+        if limite is not None:
+            consulta += " LIMIT @limite"
+            parametros.append(bigquery.ScalarQueryParameter("limite", "INT64", limite))
+
+        configuracion = bigquery.QueryJobConfig(query_parameters=parametros)
         from app.services.bigquery_util import ejecutar_consulta
 
         return ejecutar_consulta(self._client, consulta, configuracion)

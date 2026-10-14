@@ -3,7 +3,9 @@
 Las vistas viven en el dataset `gold_valledata`, por eso su URL usa ese nombre de dataset.
 """
 
-from fastapi import APIRouter, Depends, Query
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.security import verificar_token
 from app.services.comentarios_detalle_repo import (
@@ -30,16 +32,51 @@ _LIMITE = Query(
 )
 
 
+def _parsear_fecha(valor: str | None) -> datetime | None:
+    """Convierte una fecha ISO 8601 (fecha o fecha-hora) en datetime UTC sin zona.
+
+    - Vacio o ausente -> None (no se filtra).
+    - Acepta fecha (2026-10-10) o fecha y hora (2026-10-10T14:33:32, con o sin zona).
+    - Formato invalido -> 422 (error de quien consume, no del servidor).
+    """
+    if valor is None or valor.strip() == "":
+        return None
+    try:
+        dt = datetime.fromisoformat(valor)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Parametro 'fecha_hora_publicacion' invalido. Usa ISO 8601, por ejemplo 2026-10-10 o 2026-10-10T14:33:32.",
+        )
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 @router.get(
     "/valledata_api_comentarios_detalle",
     summary="Obtener el detalle de comentarios analizados",
 )
 async def obtener_comentarios_detalle(
     limite: int | None = _LIMITE,
+    fecha_hora_publicacion: str | None = Query(
+        default=None,
+        description=(
+            "Trae los comentarios publicados DESDE esta fecha/hora en adelante "
+            "(fecha_hora_publicacion >= valor). Acepta ISO 8601: fecha (2026-10-10) o "
+            "fecha y hora (2026-10-10T14:33:32). Vacio = todos."
+        ),
+    ),
+    municipio: str | None = Query(
+        default=None,
+        description="Filtra por municipio. No distingue mayusculas/minusculas (se compara en MAYUSCULA).",
+    ),
     repo: ComentariosDetalleRepo = Depends(get_comentarios_detalle_repo),
 ) -> dict:
-    """Devuelve el detalle de comentarios ya analizados (un comentario por fila, con su sentimiento y emoción) de la vista valledata_api_comentarios_detalle en BigQuery."""
-    filas = repo.obtener_filas(limite=limite)
+    """Devuelve el detalle de comentarios ya analizados (un comentario por fila, con su sentimiento y emoción) de la vista valledata_api_comentarios_detalle en BigQuery. Se puede filtrar por `fecha_hora_publicacion` (desde) y por `municipio`."""
+    fecha = _parsear_fecha(fecha_hora_publicacion)
+    muni = municipio.strip().upper() if municipio and municipio.strip() else None
+    filas = repo.obtener_filas(limite=limite, fecha_hora_publicacion=fecha, municipio=muni)
     return {
         "identificador": "comentarios_detalle",
         "filas": filas,
