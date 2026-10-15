@@ -18,7 +18,7 @@ Este README cubre cómo **instalar, configurar, correr y contribuir**.
 | --- | --- | --- |
 | `GET /health` | Liveness: `{"status": "alive"}`. Para la plataforma. | No |
 | `GET /ready` | Readiness: revisa que BigQuery responda. `200` o `503`. | No |
-| `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_detalle` | Detalle de comentarios ya analizados (un comentario por fila, con sentimiento y emoción) desde la vista en BigQuery. Parámetro `limite`. | **Sí** |
+| `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_detalle` | Detalle de comentarios ya analizados (un comentario por fila, con sentimiento y emoción) desde la vista en BigQuery. Parámetros: `limite`, `fecha_hora_publicacion` (ISO 8601; trae desde esa fecha/hora en adelante) y `municipio` (no distingue mayúsculas). | **Sí** |
 | `GET /api/v1/expose/gold_valledata/valledata_api_comentarios_resumen_dataset` | Resumen de comentarios por dataset (totales y porcentajes) desde la vista en BigQuery. Parámetro `limite`. | **Sí** |
 | `GET /api/v1/consume/bd_ckan/comments` | Comentarios que DataGov obtuvo de ValleData, con `municipios_con_error`. Parámetro opcional `desde` (fecha ISO 8601) que se reenvía a ValleData para filtrar `created >= desde`. | **Sí** |
 
